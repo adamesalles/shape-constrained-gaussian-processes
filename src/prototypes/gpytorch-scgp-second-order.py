@@ -23,10 +23,10 @@ def load_data(path: str) -> tuple:
 
 # Read http://www.gaussianprocess.org/gpml/chapters/RW9.pdf
 class SCGP(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood):
+    def __init__(self, train_x, train_y, likelihood, kernel):
         super(SCGP, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMeanGradGrad() # here's the trick
-        self.base_kernel = gpytorch.kernels.RBFKernelGradGrad() 
+        self.base_kernel = kernel
         self.covar_module = gpytorch.kernels.ScaleKernel(self.base_kernel)
 
     def forward(self, x):
@@ -35,11 +35,11 @@ class SCGP(gpytorch.models.ExactGP):
         # https://docs.gpytorch.ai/en/latest/examples/03_Multitask_Exact_GPs/Multitask_GP_Regression.html
         return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x) 
 
-def scgp_fit(path: str, iters: int) -> tuple:
+def scgp_fit(path: str, iters: int, kernel) -> tuple:
     train_x, train_y = load_data(path)
 
     likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=3)  # y, y_prime and y_double_prime
-    model = SCGP(train_x, train_y, likelihood)
+    model = SCGP(train_x, train_y, likelihood, kernel)
 
     # Optimizing hyperparameters via marginal log likelihood
     model.train()
@@ -106,8 +106,15 @@ def save_plot_scpg(train_x: torch.Tensor, train_y: torch.Tensor, model: SCGP, li
     
 
 if __name__ == '__main__':
-    uniform_train_x, uniform_train_y, uniform_data_scgp, unform_data_likelihood = scgp_fit(PATH / 'data/Gaussian_logCA0_uniform_J=20.csv', 100)
-    save_plot_scpg(uniform_train_x, uniform_train_y, uniform_data_scgp, unform_data_likelihood, 'SCGP_SO_ScaleRBFKernel_uniform_test')
+    kernels = {
+        'RBFKernel': gpytorch.kernels.RBFKernelGradGrad()
+    }
+    for i in range(1, 7):
+        kernels[f'PolynomialKernel{i}'] = gpytorch.kernels.PolynomialKernelGradGrad(power=i)
     
-    adaptive_train_x, adaptive_train_y, adaptive_data_scgp, adaptive_data_likelihood = scgp_fit(PATH / 'data/Gaussian_logCA0_adaptive_J=20.csv', 100)
-    save_plot_scpg(adaptive_train_x, adaptive_train_y, adaptive_data_scgp, adaptive_data_likelihood, 'SCGP_SO_ScaleRBFKernel_adaptive_test')
+    for ker_name, kernel in kernels.items():
+        uniform_train_x, uniform_train_y, uniform_data_scgp, uniform_data_likelihood = scgp_fit(PATH / 'data/Gaussian_logCA0_uniform_J=20.csv', 100, kernel=kernel)
+        save_plot_scpg(uniform_train_x, uniform_train_y, uniform_data_scgp, uniform_data_likelihood, f'SCGP_SO_Scale{ker_name}_uniform_test')
+        
+        adaptive_train_x, adaptive_train_y, adaptive_data_scgp, adaptive_data_likelihood = scgp_fit(PATH / 'data/Gaussian_logCA0_adaptive_J=20.csv', 100, kernel=kernel)
+        save_plot_scpg(adaptive_train_x, adaptive_train_y, adaptive_data_scgp, adaptive_data_likelihood, f'SCGP_SO_Scale{ker_name}_adaptive_test')
