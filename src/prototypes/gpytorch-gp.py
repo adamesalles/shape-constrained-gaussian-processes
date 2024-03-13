@@ -23,34 +23,29 @@ LOGGING = False
 def load_data(path: str) -> tuple:
     data = np.loadtxt(path, delimiter=",", skiprows=1, dtype=np.float32)
     x_train = torch.from_numpy(data[:, 0])
-    y_train = torch.stack(
-        [torch.from_numpy(data[:, 1]), torch.from_numpy(data[:, 2])], -1
-    ).squeeze(1)
+    y_train = torch.from_numpy(data[:, 1])
     return x_train, y_train
 
 
 # Read http://www.gaussianprocess.org/gpml/chapters/RW9.pdf
-class SCGP(gpytorch.models.ExactGP):
+class GP(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, kernel):
-        super(SCGP, self).__init__(train_x, train_y, likelihood)
-        self.mean_module = gpytorch.means.ConstantMeanGrad()
+        super(GP, self).__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.ConstantMean()
         self.base_kernel = kernel
         self.covar_module = gpytorch.kernels.ScaleKernel(self.base_kernel)
 
     def forward(self, x):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x,
-                                                                  covar_x)
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 
-def scgp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
+def gp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
     train_x, train_y = load_data(path)
 
-    likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
-        num_tasks=2
-    )  # y and y_prime
-    model = SCGP(train_x, train_y, likelihood, kernel)
+    likelihood = gpytorch.likelihoods.GaussianLikelihood()  # y 
+    model = GP(train_x, train_y, likelihood, kernel)
 
     # Optimizing hyperparameters via marginal log likelihood
     model.train()
@@ -77,14 +72,14 @@ def scgp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
 def save_plot_scpg(
     train_x: torch.Tensor,
     train_y: torch.Tensor,
-    model: SCGP,
+    model: GP,
     likelihood: gpytorch.likelihoods.MultitaskGaussianLikelihood,
     ker_name: str,
     dataset_name: str
 ) -> None:
 
     # Name of the plot
-    name = f"SCGP_Scale{ker_name}_{dataset_name}_test"
+    name = f"GP_Scale{ker_name}_{dataset_name}_test"
 
     # Evaluation mode
     model.train()
@@ -92,7 +87,7 @@ def save_plot_scpg(
     likelihood.eval()
 
     # Initialize plots
-    f, (y_ax, y_prime_ax) = plt.subplots(1, 2, figsize=(10, 4))
+    f, y_ax = plt.subplots(1, 1, figsize=(5, 4))
 
     # Make predictions
     with torch.no_grad(), gpytorch.settings.max_cg_iterations(100):
@@ -102,28 +97,17 @@ def save_plot_scpg(
         lower, upper = predictions.confidence_region()
 
     # Plotting predictions for f
-    y_ax.plot(train_x.detach().numpy(), train_y[:, 0].detach().numpy(), "k*")
-    y_ax.plot(test_x.numpy(), mean[:, 0].numpy(), "b")
+    y_ax.plot(train_x.detach().numpy(), train_y.detach().numpy(), "k*")
+    y_ax.plot(test_x.numpy(), mean.numpy(), "b")
     y_ax.fill_between(
-        test_x.numpy(), lower[:, 0].numpy(), upper[:, 0].numpy(), alpha=0.5
+        test_x.numpy(), lower.numpy(), upper.numpy(), alpha=0.5
     )
     y_ax.legend(["Observed Values", "Mean", "Confidence"])
     y_ax.set_title("Function values")
     # y_ax.set_xlim([0, 1])
     # y_ax.set_ylim([-7.5, 12.5])
 
-    # Plotting predictions for f'
-    y_prime_ax.plot(train_x.detach().numpy(), train_y[:, 1].detach().numpy(),
-                    "k*")
-    y_prime_ax.plot(test_x.numpy(), mean[:, 1].numpy(), "b")
-    y_prime_ax.fill_between(
-        test_x.numpy(), lower[:, 1].numpy(), upper[:, 1].numpy(), alpha=0.5
-    )
-    y_prime_ax.legend(["Observed Derivatives", "Mean", "Confidence"])
-    y_prime_ax.set_title("Derivatives")
-    # y_prime_ax.set_xlim([0, 1])
-
-    save_path = PATH / "results" /  str(dataset_name) / 'scgp' 
+    save_path = PATH / "results" / str(dataset_name) / 'gp'
     save_path.mkdir(parents=True, exist_ok=True)
 
     f.savefig(save_path / (name + ".png"))
@@ -142,10 +126,10 @@ if __name__ == "__main__":
         "adaptive_HC3": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC3.csv",
     }
 
-    kernels = {"RBFKernel": gpytorch.kernels.RBFKernelGrad()}
+    kernels = {"RBFKernel": gpytorch.kernels.RBFKernel()}
     for i in range(3, 7):
         kernels[f"PolynomialKernel{i}"] = \
-            gpytorch.kernels.PolynomialKernelGrad(power=i)
+            gpytorch.kernels.PolynomialKernel(power=i)
 
     for ker_name, kernel in kernels.items():
         print(f"Running {ker_name}")
@@ -153,13 +137,13 @@ if __name__ == "__main__":
         for dataset_name, dataset_path in datasets.items():
             start_time = time.time()
             try:
-                train_x, train_y, data_scgp, data_likelihood = scgp_fit(
+                train_x, train_y, data_gp, data_likelihood = gp_fit(
                     dataset_path, 100, kernel=kernel
                 )
                 save_plot_scpg(
                     train_x,
                     train_y,
-                    data_scgp,
+                    data_gp,
                     data_likelihood,
                     ker_name,
                     dataset_name
