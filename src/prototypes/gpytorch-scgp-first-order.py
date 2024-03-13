@@ -136,6 +136,10 @@ if __name__ == "__main__":
         "adaptive": DATA_PATH / "Gaussian_logCA0_adaptive_J=20.csv",
         "uniform_HC": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20.csv",
         "adaptive_HC": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20.csv",
+        "uniform_HC2": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC2.csv",
+        "adaptive_HC2": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC2.csv",
+        "uniform_HC3": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC3.csv",
+        "adaptive_HC3": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC3.csv",
     }
 
     kernels = {"RBFKernel": gpytorch.kernels.RBFKernelGrad()}
@@ -148,18 +152,22 @@ if __name__ == "__main__":
 
         for dataset_name, dataset_path in datasets.items():
             start_time = time.time()
-            train_x, train_y, data_scgp, data_likelihood = scgp_fit(
-                dataset_path, 100, kernel=kernel
-            )
-            save_plot_scpg(
-                train_x,
-                train_y,
-                data_scgp,
-                data_likelihood,
-                ker_name,
-                dataset_name
-            )
-            final_time = time.time() - start_time
-            print(
-                f"Finished {ker_name} on {dataset_name} took {final_time:.2f}s"
-            )
+            try:
+                train_x, train_y, data_scgp, data_likelihood = scgp_fit(
+                    dataset_path, 100, kernel=kernel
+                )
+                save_plot_scpg(
+                    train_x,
+                    train_y,
+                    data_scgp,
+                    data_likelihood,
+                    ker_name,
+                    dataset_name
+                )
+                final_time = time.time() - start_time
+                print(
+                    f"Finished {ker_name} on {dataset_name} took {final_time:.2f}s"
+                )
+            except Exception as e:
+                print(f"Error on {ker_name} on {dataset_name} took {e}")
+                continue
