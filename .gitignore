@@ -1,6 +1,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python,julia,latex
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,julia,latex
 
+*.ipynb
+*.ipynb_checkpoints/
+
 ### Old code ###
 src/old/*
 

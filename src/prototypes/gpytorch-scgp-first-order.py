@@ -3,6 +3,7 @@
 
 import torch
 import gpytorch
+import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 import pathlib
@@ -12,6 +13,10 @@ from tqdm import tqdm, trange
 PATH = pathlib.Path(__file__).parent.parent.parent.absolute()
 DATA_PATH = PATH / "data"
 LOGGING = False
+
+matplotlib.rc('text', usetex=True)
+matplotlib.rc('font', family='serif')
+matplotlib.rc('text.latex', preamble=r'\usepackage{amsmath}')
 
 # Set default device to gpu if available
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -92,7 +97,8 @@ def save_plot_scpg(
     likelihood.eval()
 
     # Initialize plots
-    f, (y_ax, y_prime_ax) = plt.subplots(1, 2, figsize=(10, 4))
+    f, (y_ax, y_prime_ax) = plt.subplots(1, 2,
+                                         figsize=(10, 4), tight_layout=True)
 
     # Make predictions
     with torch.no_grad(), gpytorch.settings.max_cg_iterations(100):
@@ -109,8 +115,10 @@ def save_plot_scpg(
     )
     y_ax.legend(["Observed Values", "Mean", "Confidence"])
     y_ax.set_title("Function values")
-    # y_ax.set_xlim([0, 1])
+    y_ax.set_xlim([0, 1])
     # y_ax.set_ylim([-7.5, 12.5])
+    y_ax.set_xlabel(r"$\alpha$")
+    y_ax.set_ylabel(r"$f_{\boldsymbol{z}}(\alpha)$")
 
     # Plotting predictions for f'
     y_prime_ax.plot(train_x.detach().numpy(), train_y[:, 1].detach().numpy(),
@@ -120,13 +128,16 @@ def save_plot_scpg(
         test_x.numpy(), lower[:, 1].numpy(), upper[:, 1].numpy(), alpha=0.5
     )
     y_prime_ax.legend(["Observed Derivatives", "Mean", "Confidence"])
-    y_prime_ax.set_title("Derivatives")
-    # y_prime_ax.set_xlim([0, 1])
+    y_prime_ax.set_title(r"Derivatives with respect to $\alpha$")
+    y_prime_ax.set_xlim([0, 1])
+    
+    y_prime_ax.set_xlabel(r"$\alpha$")
+    y_prime_ax.set_ylabel(r"$\frac{\mathrm{d}}{\mathrm{d}\alpha}f_{\boldsymbol{z}}(\alpha)$")
 
     save_path = PATH / "results" /  str(dataset_name) / 'scgp' 
     save_path.mkdir(parents=True, exist_ok=True)
 
-    f.savefig(save_path / (name + ".png"))
+    f.savefig(save_path / (name + ".png"), dpi=600, bbox_inches="tight")
     plt.close(f)
 
 

@@ -3,6 +3,7 @@
 
 import torch
 import gpytorch
+import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 import pathlib
@@ -13,6 +14,10 @@ PATH = pathlib.Path(__file__).parent.parent.parent.absolute()
 DATA_PATH = PATH / "data"
 LOGGING = False
 
+
+matplotlib.rc('text', usetex=True)
+matplotlib.rc('font', family='serif')
+matplotlib.rc('text.latex', preamble=r'\usepackage{amsmath}')
 # Set default device to gpu if available
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # torch.set_default_device(device)
@@ -115,7 +120,9 @@ def save_plot_scpg(
     y_ax.legend(["Observed Values", "Mean", "Confidence"])
     y_ax.set_title("Function values")
     y_ax.set_xlim([0, 1])
-    y_ax.set_ylim([-7.5, 12.5])
+    # y_ax.set_ylim([-7.5, 12.5])
+    y_ax.set_xlabel(r"$\alpha$")
+    y_ax.set_ylabel(r"$f_{\boldsymbol{z}}(\alpha)$")
 
     # Plotting predictions for f'
     y_prime_ax.plot(train_x.detach().numpy(),
@@ -126,8 +133,11 @@ def save_plot_scpg(
     )
     y_prime_ax.legend(["Observed First Order Derivatives",
                        "Mean", "Confidence"])
-    y_prime_ax.set_title("First Order Derivatives")
+    y_prime_ax.set_title(r"Derivatives with respect to $\alpha$")
     y_prime_ax.set_xlim([0, 1])
+    
+    y_prime_ax.set_xlabel(r"$\alpha$")
+    y_prime_ax.set_ylabel(r"$\frac{\mathrm{d}}{\mathrm{d}\alpha}f_{\boldsymbol{z}}(\alpha)$")
 
     # Plotting predictions for f'
     y_double_prime_ax.plot(
@@ -140,10 +150,14 @@ def save_plot_scpg(
     y_double_prime_ax.legend(
         ["Observed Second Order Derivatives", "Mean", "Confidence"]
     )
-    y_double_prime_ax.set_title("Second Order Derivatives")
+    y_double_prime_ax.set_title(r"Second Order Derivatives with respect to $\alpha$")
     y_double_prime_ax.set_xlim([0, 1])
+    
+    y_double_prime_ax.set_xlabel(r"$\alpha$")
+    y_double_prime_ax.set_ylabel(r"$\frac{\mathrm{d}^2}{\mathrm{d}\alpha^2}f_{\boldsymbol{z}}(\alpha)$")
+    
 
-    save_path = PATH / "results" / str(dataset_name)
+    save_path = PATH / "results" / str(dataset_name) / 'scgp_so'
     save_path.mkdir(parents=True, exist_ok=True)
 
     f.savefig(save_path / (name + ".png"))
@@ -156,6 +170,10 @@ if __name__ == "__main__":
         "adaptive": DATA_PATH / "Gaussian_logCA0_adaptive_J=20.csv",
         "uniform_HC": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20.csv",
         "adaptive_HC": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20.csv",
+        "uniform_HC2": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC2.csv",
+        "adaptive_HC2": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC2.csv",
+        "uniform_HC3": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC3.csv",
+        "adaptive_HC3": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC3.csv",
     }
 
     kernels = {"RBFKernel": gpytorch.kernels.RBFKernelGradGrad()}
