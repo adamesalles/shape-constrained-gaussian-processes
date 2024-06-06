@@ -85,6 +85,21 @@ def save_plot_scpg(
     # Name of the plot
     name = f"GP_Scale{ker_name}_{dataset_name}_test"
 
+    global true_HC_x, true_MC_x, true_HC_y, true_MC_y
+    
+    
+    plot_mse = False
+    if dataset_name == "uniform_new_HC" or dataset_name == "adaptive_new_HC":
+        test_x = true_HC_x
+        test_y = true_HC_y
+        plot_mse = True
+    elif dataset_name == "uniform_new_MC" or dataset_name == "adaptive_new_MC":
+        test_x = true_MC_x
+        test_y = true_MC_y
+        plot_mse = True
+    else:
+        test_x = torch.linspace(0, 1, 100)
+        
     # Evaluation mode
     model.train()
     model.eval()
@@ -94,11 +109,13 @@ def save_plot_scpg(
     f, y_ax = plt.subplots(1, 1, figsize=(5, 4), tight_layout=True)
 
     # Make predictions
+    mse = torch.nn.MSELoss()
     with torch.no_grad(), gpytorch.settings.max_cg_iterations(100):
-        test_x = torch.linspace(0, 1, 100)
         predictions = likelihood(model(test_x))
         mean = predictions.mean
         lower, upper = predictions.confidence_region()
+        if plot_mse:
+            mse_loss = mse(mean, test_y)
 
     # Plotting predictions for f
     y_ax.plot(train_x.detach().numpy(), train_y.detach().numpy(), "k*")
@@ -112,6 +129,10 @@ def save_plot_scpg(
     # y_ax.set_ylim([-7.5, 12.5])
     y_ax.set_xlabel(r"$\alpha$")
     y_ax.set_ylabel(r"$f_{\boldsymbol{z}}(\alpha)$")
+    if plot_mse:
+        # show mse
+        y_ax.text(0.05, 0.95, f"MSE: {mse_loss:.2f}",
+                  transform=y_ax.transAxes)
 
     save_path = PATH / "results" / str(dataset_name) / 'gp'
     save_path.mkdir(parents=True, exist_ok=True)
@@ -122,15 +143,22 @@ def save_plot_scpg(
 
 if __name__ == "__main__":
     datasets = {
-        "uniform": DATA_PATH / "Gaussian_logCA0_uniform_J=20.csv",
-        "adaptive": DATA_PATH / "Gaussian_logCA0_adaptive_J=20.csv",
-        "uniform_HC": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20.csv",
-        "adaptive_HC": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20.csv",
-        "uniform_HC2": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC2.csv",
-        "adaptive_HC2": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC2.csv",
-        "uniform_HC3": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC3.csv",
-        "adaptive_HC3": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC3.csv",
+        # "uniform": DATA_PATH / "Gaussian_logCA0_uniform_J=20.csv",
+        # "adaptive": DATA_PATH / "Gaussian_logCA0_adaptive_J=20.csv",
+        # "uniform_HC": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20.csv",
+        # "adaptive_HC": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20.csv",
+        # "uniform_HC2": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC2.csv",
+        # "adaptive_HC2": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC2.csv",
+        # "uniform_HC3": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC3.csv",
+        # "adaptive_HC3": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC3.csv",
+        "uniform_new_HC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_HC.csv",
+        "uniform_new_MC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_MC.csv",
+        "adaptive_new_HC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_HC.csv",
+        "adaptive_new_MC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_MC.csv",
     }
+    
+    true_HC_x, true_HC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_HC.csv")
+    true_MC_x, true_MC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_MC.csv")
 
     kernels = {"RBFKernel": gpytorch.kernels.RBFKernel()}
     for i in range(3, 7):
