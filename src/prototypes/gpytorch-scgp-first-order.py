@@ -32,6 +32,14 @@ def load_data(path: str) -> tuple:
         [torch.from_numpy(data[:, 1]), torch.from_numpy(data[:, 2])], -1
     ).squeeze(1)
     
+    # verify if the data is convex on y
+    x_train, indices = x_train.sort()
+    y_train = y_train[indices]
+    
+    diff = y_train[1:, 1] - y_train[:-1, 1]
+    assert (torch.any(diff < 0) & torch.any(diff >= 0)), \
+        "Data is not convex or concave"
+    
     return x_train, y_train
 
 
@@ -187,6 +195,11 @@ if __name__ == "__main__":
     true_HC_x, true_HC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_HC.csv")
     true_MC_x, true_MC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_MC.csv")
 
+    test_x = torch.tensor([5, 4, 1, 2, 3])
+    test_y = torch.tensor([100, 200, 1000, 500, 400])
+    
+    exit()
+    
     kernels = {"RBFKernel": gpytorch.kernels.RBFKernelGrad()}
     for i in range(3, 7):
         kernels[f"PolynomialKernel{i}"] = \

@@ -25,6 +25,11 @@ def load_data(path: str) -> tuple:
     y_train = torch.stack(
         [torch.from_numpy(data[:, 1]), torch.from_numpy(data[:, 3])], -1
     ).squeeze(1)
+    
+    # verify if the data is convex on y by the signal of the second derivative
+    assert torch.all(y_train[:, 1] > 0) or torch.all(y_train[:, 1] <= 0), \
+        "Data is not convex or concave"
+        
     return x_train, y_train
 
 

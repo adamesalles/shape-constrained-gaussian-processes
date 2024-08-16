@@ -33,6 +33,11 @@ def load_data(path: str) -> tuple:
          torch.from_numpy(data[:, 2]),
          torch.from_numpy(data[:, 3])], -1
     ).squeeze(1)
+    
+    # verify if the data is convex on y by the signal of the second derivative
+    assert torch.all(y_train[:, 2] > 0) or torch.all(y_train[:, 2] <= 0), \
+        "Data is not convex or concave"
+    
     return x_train, y_train
 
 
@@ -156,7 +161,6 @@ def save_plot_scpg(
     y_double_prime_ax.set_xlabel(r"$\alpha$")
     y_double_prime_ax.set_ylabel(r"$\frac{\mathrm{d}^2}{\mathrm{d}\alpha^2}f_{\boldsymbol{z}}(\alpha)$")
     
-
     save_path = PATH / "results" / str(dataset_name) / 'scgp_so'
     save_path.mkdir(parents=True, exist_ok=True)
 
