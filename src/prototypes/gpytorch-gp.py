@@ -12,22 +12,22 @@ from tqdm import tqdm, trange
 
 PATH = pathlib.Path(__file__).parent.parent.parent.absolute()
 DATA_PATH = PATH / "data"
-LOGGING = False
+LOGGING = True
 
 matplotlib.rc('text', usetex=True)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text.latex', preamble=r'\usepackage{amsmath}')
 # Set default device to gpu if available
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# torch.set_default_device(device)
-# print(f'Using {device} as device')
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+torch.set_default_device(device)
+print(f'Using {device} as device')
 
 
 # Loading data
 def load_data(path: str) -> tuple:
     data = np.loadtxt(path, delimiter=",", skiprows=1, dtype=np.float32)
-    x_train = torch.from_numpy(data[:, 0])
-    y_train = torch.from_numpy(data[:, 1])
+    x_train = torch.from_numpy(data[:, 0]).to(device)
+    y_train = torch.from_numpy(data[:, 1]).to(device)
     return x_train, y_train
 
 
@@ -55,20 +55,26 @@ def gp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
     model.train()
     likelihood.train()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-1,
+                                  weight_decay=1e-2)
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
     for i in trange(iters):
+        # print([param.cpu() for param in model.parameters()])
         optimizer.zero_grad()
         output = model(train_x)
         loss = -mll(output, train_y)
         loss.backward()
+        noise = model.likelihood.noise.item()
         if LOGGING:
             tqdm.write(
-                f"Iter {i + 1}/{iters} - Loss: {loss.item():.3f}"
-                "noise: {model.likelihood.noise.item():.3f}"
+                f"Iter {i + 1}/{iters} - Loss: {loss.item():.3f} "
+                f"noise: {noise:.3f}"
             )
         optimizer.step()
+        
+        if (i >= 1000) and (noise < 1):
+            break
 
     return train_x, train_y, model, likelihood
 
@@ -99,9 +105,8 @@ def save_plot_scpg(
         plot_mse = True
     else:
         test_x = torch.linspace(0, 1, 100)
-        
+    
     # Evaluation mode
-    model.train()
     model.eval()
     likelihood.eval()
 
@@ -117,8 +122,15 @@ def save_plot_scpg(
         if plot_mse:
             mse_loss = mse(mean, test_y)
 
+    train_x = train_x.cpu()
+    train_y = train_y.cpu()
+    test_x = test_x.cpu()
+    mean = mean.cpu()
+    lower = lower.cpu()
+    upper = upper.cpu()
+    
     # Plotting predictions for f
-    y_ax.plot(train_x.detach().numpy(), train_y.detach().numpy(), "k*")
+    y_ax.plot(train_x.numpy(), train_y.numpy(), "k*")
     y_ax.plot(test_x.numpy(), mean.numpy(), "b")
     y_ax.fill_between(
         test_x.numpy(), lower.numpy(), upper.numpy(), alpha=0.5
@@ -160,10 +172,10 @@ if __name__ == "__main__":
     true_HC_x, true_HC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_HC.csv")
     true_MC_x, true_MC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_MC.csv")
 
-    kernels = {"RBFKernel": gpytorch.kernels.RBFKernel()}
-    for i in range(3, 7):
-        kernels[f"PolynomialKernel{i}"] = \
-            gpytorch.kernels.PolynomialKernel(power=i)
+    kernels = {"RBFKernel": gpytorch.kernels.RBFKernel}
+    # for i in range(3, 7):
+    #     kernels[f"PolynomialKernel{i}"] = \
+    #         gpytorch.kernels.PolynomialKernel(power=i)
 
     for ker_name, kernel in kernels.items():
         print(f"Running {ker_name}")
@@ -171,8 +183,9 @@ if __name__ == "__main__":
         for dataset_name, dataset_path in datasets.items():
             start_time = time.time()
             try:
+                kernel_gp = kernel()
                 train_x, train_y, data_gp, data_likelihood = gp_fit(
-                    dataset_path, 100, kernel=kernel
+                    dataset_path, 10000, kernel=kernel_gp
                 )
                 save_plot_scpg(
                     train_x,
@@ -186,6 +199,8 @@ if __name__ == "__main__":
                 print(
                     f"Finished {ker_name} on {dataset_name} took {final_time:.2f}s"
                 )
+                
+                del train_x, train_y, data_gp, data_likelihood, kernel_gp
             except Exception as e:
                 print(f"Error on {ker_name} on {dataset_name} took {e}")
                 continue

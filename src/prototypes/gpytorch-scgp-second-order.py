@@ -12,7 +12,7 @@ from tqdm import tqdm, trange
 
 PATH = pathlib.Path(__file__).parent.parent.parent.absolute()
 DATA_PATH = PATH / "data"
-LOGGING = False
+LOGGING = True
 
 
 matplotlib.rc('text', usetex=True)
@@ -35,7 +35,8 @@ def load_data(path: str) -> tuple:
     ).squeeze(1)
     
     # verify if the data is convex on y by the signal of the second derivative
-    assert torch.all(y_train[:, 2] > 0) or torch.all(y_train[:, 2] <= 0), \
+    assert (torch.all(y_train[:, 2] >= 0)
+            or torch.all(y_train[:, 2] <= 0)), \
         "Data is not convex or concave"
     
     return x_train, y_train
@@ -68,7 +69,8 @@ def scgp_fit(path: str, iters: int, kernel) -> tuple:
     model.train()
     likelihood.train()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3,
+                                  weight_decay=1e-4)
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
     for i in trange(iters):

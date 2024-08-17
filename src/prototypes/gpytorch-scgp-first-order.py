@@ -19,9 +19,10 @@ matplotlib.rc('font', family='serif')
 matplotlib.rc('text.latex', preamble=r'\usepackage{amsmath}')
 
 # Set default device to gpu if available
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# cpu = torch.device("cpu")
 # torch.set_default_device(device)
-# print(f'Using {device} as device')
+print(f'Using {device} as device')
 
 
 # Loading data
@@ -37,7 +38,7 @@ def load_data(path: str) -> tuple:
     y_train = y_train[indices]
     
     diff = y_train[1:, 1] - y_train[:-1, 1]
-    assert (torch.any(diff < 0) & torch.any(diff >= 0)), \
+    assert not (torch.any(diff < 0) & torch.any(diff >= 0)), \
         "Data is not convex or concave"
     
     return x_train, y_train
@@ -65,12 +66,19 @@ def scgp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
         num_tasks=2
     )  # y and y_prime
     model = SCGP(train_x, train_y, likelihood, kernel)
+    
+    # sending to cuda
+    train_x = train_x.to(device)
+    train_y = train_y.to(device)
+    model = model.to(device)
+    likelihood = likelihood.to(device)
 
     # Optimizing hyperparameters via marginal log likelihood
     model.train()
     likelihood.train()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-1,
+                                  weight_decay=1e-2)
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
     for i in trange(iters):
@@ -78,12 +86,16 @@ def scgp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
         output = model(train_x)
         loss = -mll(output, train_y)
         loss.backward()
+        noise = model.likelihood.noise.item()
         if LOGGING:
             tqdm.write(
                 f"Iter {i + 1}/{iters} - Loss: {loss.item():.3f}"
-                "noise: {model.likelihood.noise.item():.3f}"
+                f"noise: {noise:.3f}"
             )
         optimizer.step()
+        
+        if (i > 1000) and (noise < 1):
+            break
 
     return train_x, train_y, model, likelihood
 
@@ -116,6 +128,8 @@ def save_plot_scpg(
     name = f"SCGP_Scale{ker_name}_{dataset_name}_test"
 
     # Evaluation mode
+    model = model.cpu()
+    likelihood = likelihood.cpu()
     model.train()
     model.eval()
     likelihood.eval()
@@ -124,6 +138,12 @@ def save_plot_scpg(
     f, (y_ax, y_prime_ax) = plt.subplots(1, 2,
                                          figsize=(10, 4), tight_layout=True)
 
+    train_x = train_x.cpu()
+    train_y = train_y.cpu()
+    test_x = test_x.cpu()
+    test_y = test_y.cpu()
+    
+    
     # Make predictions
     mse = torch.nn.MSELoss()
     with torch.no_grad(), gpytorch.settings.max_cg_iterations(100):
@@ -133,9 +153,9 @@ def save_plot_scpg(
         if plot_mse:
             mse_loss = mse(mean[:, 0], test_y[:, 0])
             mse_loss_prime = mse(mean[:, 1], test_y[:, 1])
-
+    
     # Plotting predictions for f
-    y_ax.plot(train_x.detach().numpy(), train_y[:, 0].detach().numpy(), "k*")
+    y_ax.plot(train_x.numpy(), train_y[:, 0].numpy(), "k*")
     y_ax.plot(test_x.numpy(), mean[:, 0].numpy(), "b")
     y_ax.fill_between(
         test_x.numpy(), lower[:, 0].numpy(), upper[:, 0].numpy(), alpha=0.5
@@ -152,7 +172,7 @@ def save_plot_scpg(
                   transform=y_ax.transAxes)
 
     # Plotting predictions for f'
-    y_prime_ax.plot(train_x.detach().numpy(), train_y[:, 1].detach().numpy(),
+    y_prime_ax.plot(train_x.numpy(), train_y[:, 1].numpy(),
                     "k*")
     y_prime_ax.plot(test_x.numpy(), mean[:, 1].numpy(), "b")
     y_prime_ax.fill_between(
@@ -186,24 +206,19 @@ if __name__ == "__main__":
         # "adaptive_HC2": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC2.csv",
         # "uniform_HC3": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC3.csv",
         # "adaptive_HC3": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC3.csv",
-        # "uniform_new_HC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_HC.csv",
-        # "uniform_new_MC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_MC.csv",
+        "uniform_new_HC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_HC.csv",
+        "uniform_new_MC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_MC.csv",
         "adaptive_new_HC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_HC.csv",
         "adaptive_new_MC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_MC.csv",
     }
     
     true_HC_x, true_HC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_HC.csv")
     true_MC_x, true_MC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_MC.csv")
-
-    test_x = torch.tensor([5, 4, 1, 2, 3])
-    test_y = torch.tensor([100, 200, 1000, 500, 400])
     
-    exit()
-    
-    kernels = {"RBFKernel": gpytorch.kernels.RBFKernelGrad()}
-    for i in range(3, 7):
-        kernels[f"PolynomialKernel{i}"] = \
-            gpytorch.kernels.PolynomialKernelGrad(power=i)
+    kernels = {"RBFKernel": gpytorch.kernels.RBFKernelGrad}
+    # for i in range(3, 7):
+    #     kernels[f"PolynomialKernel{i}"] = \
+    #         gpytorch.kernels.PolynomialKernelGrad(power=i)
 
     for ker_name, kernel in kernels.items():
         print(f"Running {ker_name}")
@@ -211,8 +226,9 @@ if __name__ == "__main__":
         for dataset_name, dataset_path in datasets.items():
             start_time = time.time()
             try:
+                kernel_scgp = kernel()
                 train_x, train_y, data_scgp, data_likelihood = scgp_fit(
-                    dataset_path, 100, kernel=kernel
+                    dataset_path, 10000, kernel=kernel_scgp
                 )
                 save_plot_scpg(
                     train_x,
@@ -226,6 +242,7 @@ if __name__ == "__main__":
                 print(
                     f"Finished {ker_name} on {dataset_name} took {final_time:.2f}s"
                 )
+                del train_x, train_y, data_scgp, data_likelihood, kernel_scgp
             except Exception as e:
                 print(f"Error on {ker_name} on {dataset_name} took {e}")
                 continue

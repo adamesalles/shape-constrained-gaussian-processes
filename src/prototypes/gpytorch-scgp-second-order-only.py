@@ -17,6 +17,12 @@ matplotlib.rc('text', usetex=True)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text.latex', preamble=r'\usepackage{amsmath}')
 
+# Set default device to gpu if available
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# cpu = torch.device("cpu")
+# torch.set_default_device(device)
+print(f'Using {device} as device')
+
 
 # Loading data
 def load_data(path: str) -> tuple:
@@ -27,7 +33,8 @@ def load_data(path: str) -> tuple:
     ).squeeze(1)
     
     # verify if the data is convex on y by the signal of the second derivative
-    assert torch.all(y_train[:, 1] > 0) or torch.all(y_train[:, 1] <= 0), \
+    assert (torch.all(y_train[:, 1] >= 0)
+            or torch.all(y_train[:, 1] <= 0)), \
         "Data is not convex or concave"
         
     return x_train, y_train
@@ -56,24 +63,37 @@ def scgp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
     )  # y and y_second_prime
     model = SCGP(train_x, train_y, likelihood, kernel)
 
+    # sending to cuda
+    train_x = train_x.to(device)
+    train_y = train_y.to(device)
+    model = model.to(device)
+    likelihood = likelihood.to(device)
+    
     # Optimizing hyperparameters via marginal log likelihood
     model.train()
     likelihood.train()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-2,
+                                  weight_decay=1e-2)
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
     for i in trange(iters):
+        # print([param.cpu() for param in model.parameters()])
+        
         optimizer.zero_grad()
         output = model(train_x)
         loss = -mll(output, train_y)
         loss.backward()
+        noise = model.likelihood.noise.item()
         if LOGGING:
             tqdm.write(
-                f"Iter {i + 1}/{iters} - Loss: {loss.item():.3f}"
-                "noise: {model.likelihood.noise.item():.3f}"
+                f"Iter {i + 1}/{iters} - Loss: {loss.item():.3f} "
+                f"noise: {noise:.3f}"
             )
         optimizer.step()
+        
+        if (i > 1000) and (noise < 1):
+            break
 
     return train_x, train_y, model, likelihood
 
@@ -105,6 +125,8 @@ def save_plot_scpg(
         test_x = torch.linspace(0, 1, 100)
 
     # Evaluation mode
+    model = model.cpu()
+    likelihood = likelihood.cpu()
     model.train()
     model.eval()
     likelihood.eval()
@@ -113,6 +135,11 @@ def save_plot_scpg(
     f, (y_ax, y_prime_ax) = plt.subplots(1, 2,
                                          figsize=(10, 4), tight_layout=True)
 
+    train_x = train_x.cpu()
+    train_y = train_y.cpu()
+    test_x = test_x.cpu()
+    test_y = test_y.cpu()
+    
     # Make predictions
     mse = torch.nn.MSELoss()
     with torch.no_grad(), gpytorch.settings.max_cg_iterations(100):
@@ -184,7 +211,7 @@ if __name__ == "__main__":
     true_HC_x, true_HC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_HC.csv")
     true_MC_x, true_MC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_MC.csv")
 
-    kernels = {"RBFKernel": RBFKernelSecondGrad(),}
+    kernels = {"RBFKernel": RBFKernelSecondGrad, }
 
     for ker_name, kernel in kernels.items():
         print(f"Running {ker_name}")
@@ -192,8 +219,9 @@ if __name__ == "__main__":
         for dataset_name, dataset_path in datasets.items():
             start_time = time.time()
             try:
+                kernel_scgp = kernel()
                 train_x, train_y, data_scgp, data_likelihood = scgp_fit(
-                    dataset_path, 100, kernel=kernel
+                    dataset_path, 10000, kernel=kernel_scgp
                 )
                 save_plot_scpg(
                     train_x,
@@ -207,6 +235,7 @@ if __name__ == "__main__":
                 print(
                     f"Finished {ker_name} on {dataset_name} took {final_time:.2f}s"
                 )
+                del train_x, train_y, data_scgp, data_likelihood, kernel_scgp
             except Exception as e:
                 print(f"Error on {ker_name} on {dataset_name} took {e}")
                 continue
