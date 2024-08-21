@@ -92,9 +92,6 @@ def scgp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
             )
         optimizer.step()
         
-        if (i > 1000) and (noise < 1):
-            break
-
     return train_x, train_y, model, likelihood
 
 
@@ -142,7 +139,7 @@ def save_plot_scpg(
     
     # Make predictions
     mse = torch.nn.MSELoss()
-    with torch.no_grad(), gpytorch.settings.max_cg_iterations(100):
+    with torch.no_grad(), gpytorch.settings.fast_pred_var():
         predictions = likelihood(model(test_x))
         mean = predictions.mean
         lower, upper = predictions.confidence_region()

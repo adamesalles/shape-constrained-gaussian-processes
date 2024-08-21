@@ -55,12 +55,13 @@ def gp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
     model.train()
     likelihood.train()
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-1,
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-2,
                                   weight_decay=1e-2)
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
     for i in trange(iters):
-        # print([param.cpu() for param in model.parameters()])
+        # print({n: p.grad for n, p in model.named_parameters()})
+        
         optimizer.zero_grad()
         output = model(train_x)
         loss = -mll(output, train_y)
@@ -72,9 +73,6 @@ def gp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
                 f"noise: {noise:.3f}"
             )
         optimizer.step()
-        
-        if (i >= 1000) and (noise < 1):
-            break
 
     return train_x, train_y, model, likelihood
 
@@ -164,9 +162,9 @@ if __name__ == "__main__":
         # "uniform_HC3": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC3.csv",
         # "adaptive_HC3": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC3.csv",
         "uniform_new_HC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_HC.csv",
-        "uniform_new_MC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_MC.csv",
-        "adaptive_new_HC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_HC.csv",
-        "adaptive_new_MC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_MC.csv",
+        # "uniform_new_MC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_MC.csv",
+        # "adaptive_new_HC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_HC.csv",
+        # "adaptive_new_MC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_MC.csv",
     }
     
     true_HC_x, true_HC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_HC.csv")
@@ -185,7 +183,7 @@ if __name__ == "__main__":
             try:
                 kernel_gp = kernel()
                 train_x, train_y, data_gp, data_likelihood = gp_fit(
-                    dataset_path, 10000, kernel=kernel_gp
+                    dataset_path, 1000, kernel=kernel_gp
                 )
                 save_plot_scpg(
                     train_x,

@@ -186,6 +186,9 @@ def save_plot_scgp(
 
     f.savefig(save_path / (name + ".png"), dpi=600, bbox_inches="tight")
     plt.close(f)
+    
+    if plot_mse:
+        return mse_loss.item()
 
     
 def gp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel,
@@ -291,3 +294,6 @@ def save_plot_gp(
 
     f.savefig(save_path / (name + ".png"), dpi=600, bbox_inches="tight")
     plt.close(f)
+    
+    if plot_mse:
+        return mse_loss.item()

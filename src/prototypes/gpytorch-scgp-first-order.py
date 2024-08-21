@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pathlib
 import time
 from tqdm import tqdm, trange
+from torchinfo import summary
 
 PATH = pathlib.Path(__file__).parent.parent.parent.absolute()
 DATA_PATH = PATH / "data"
@@ -63,7 +64,7 @@ def scgp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
     train_x, train_y = load_data(path)
 
     likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
-        num_tasks=2
+        num_tasks=2,
     )  # y and y_prime
     model = SCGP(train_x, train_y, likelihood, kernel)
     
@@ -77,26 +78,50 @@ def scgp_fit(path: str, iters: int, kernel: gpytorch.kernels.Kernel) -> tuple:
     model.train()
     likelihood.train()
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-1,
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-2,
                                   weight_decay=1e-2)
     mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
     for i in trange(iters):
+        
+        # print({n: p for n, p in model.named_parameters()})
+        # if i == 1:
+        #     for n, p in model.named_parameters():
+        #         if n == 'likelihood.raw_task_noises':
+        #             initial_grad = p.grad
+        #             # turn off derivative grad
+        #             new_grad = torch.zeros_like(initial_grad)
+        #             new_grad[0] = initial_grad[0]
+        #             tqdm.write(f"Initial grad: {new_grad}")
+        #             p.grad = new_grad
+        # elif i == iters // 3:
+        #     for n, p in model.named_parameters():
+        #         if n == 'likelihood.raw_task_noises':
+        #             second_grad = p.grad
+        #             newer_grad = torch.zeros_like(initial_grad)
+        #             newer_grad[1] = initial_grad[1]
+        #             p.grad = newer_grad
+        # elif i == (2 * iters) // 3:
+        #     for n, p in model.named_parameters():
+        #         if n == 'likelihood.raw_task_noises':
+        #             third_grad = p.grad
+        #             final_grad = torch.zeros_like(initial_grad)
+        #             final_grad[0] = second_grad[0]
+        #             final_grad[1] = third_grad[1]
+        #             p.grad = final_grad
+               
         optimizer.zero_grad()
         output = model(train_x)
         loss = -mll(output, train_y)
         loss.backward()
         noise = model.likelihood.noise.item()
-        if LOGGING:
+        if LOGGING or i == iters - 1:
             tqdm.write(
-                f"Iter {i + 1}/{iters} - Loss: {loss.item():.3f}"
+                f"Iter {i + 1}/{iters} - Loss: {loss.item():.3f} "
                 f"noise: {noise:.3f}"
             )
         optimizer.step()
         
-        if (i > 1000) and (noise < 1):
-            break
-
     return train_x, train_y, model, likelihood
 
 
@@ -146,7 +171,7 @@ def save_plot_scpg(
     
     # Make predictions
     mse = torch.nn.MSELoss()
-    with torch.no_grad(), gpytorch.settings.max_cg_iterations(100):
+    with torch.no_grad(), gpytorch.settings.fast_pred_var():
         predictions = likelihood(model(test_x))
         mean = predictions.mean
         lower, upper = predictions.confidence_region()
@@ -207,9 +232,9 @@ if __name__ == "__main__":
         # "uniform_HC3": DATA_PATH / "Gaussian_HC_logCA0_uniform_J=20_HC3.csv",
         # "adaptive_HC3": DATA_PATH / "Gaussian_HC_logCA0_adaptive_J=20_HC3.csv",
         "uniform_new_HC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_HC.csv",
-        "uniform_new_MC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_MC.csv",
-        "adaptive_new_HC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_HC.csv",
-        "adaptive_new_MC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_MC.csv",
+        # "uniform_new_MC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_MC.csv",
+        # "adaptive_new_HC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_HC.csv",
+        # "adaptive_new_MC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_MC.csv",
     }
     
     true_HC_x, true_HC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_HC.csv")
@@ -228,7 +253,7 @@ if __name__ == "__main__":
             try:
                 kernel_scgp = kernel()
                 train_x, train_y, data_scgp, data_likelihood = scgp_fit(
-                    dataset_path, 10000, kernel=kernel_scgp
+                    dataset_path, 2000, kernel=kernel_scgp
                 )
                 save_plot_scpg(
                     train_x,
