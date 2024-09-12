@@ -10,6 +10,7 @@ from scgp.models import GP, SCGP
 PATH = pathlib.Path(__file__).parent.parent.parent.absolute()
 DATA_PATH = PATH / "data"
 LOGGING = False
+COLORS = ['#377eb8', '#ff7f00']
 
 matplotlib.rc('text', usetex=True)
 matplotlib.rc('font', family='serif')
@@ -147,11 +148,12 @@ def save_plot_scgp(
             mse_loss_prime = mse(mean[:, 1], test_y[:, 1])
     
     # Plotting predictions for f
-    y_ax.plot(train_x.numpy(), train_y[:, 0].numpy(), "k*")
-    y_ax.plot(test_x.numpy(), mean[:, 0].numpy(), "b")
+    y_ax.plot(test_x.numpy(), mean[:, 0].numpy(), color=COLORS[1])
     y_ax.fill_between(
-        test_x.numpy(), lower[:, 0].numpy(), upper[:, 0].numpy(), alpha=0.5
+        test_x.numpy(), lower[:, 0].numpy(), upper[:, 0].numpy(), alpha=0.5,
+        color=COLORS[1]
     )
+    y_ax.plot(train_x.numpy(), train_y[:, 0].numpy(), "k*")
     y_ax.legend(["Observed Values", "Mean", "Confidence"])
     y_ax.set_title("Function values")
     y_ax.set_xlim([0, 1])
@@ -159,17 +161,20 @@ def save_plot_scgp(
     y_ax.set_xlabel(r"$\alpha$")
     y_ax.set_ylabel(r"$f_{\boldsymbol{z}}(\alpha)$")
     if plot_mse:
-        # show mse
-        y_ax.text(0.05, 0.95, f"MSE: {mse_loss:.2f}",
-                  transform=y_ax.transAxes)
+        # show mse in bottom right (larger font)
+        y_ax.text(0.7, 0.05, f"MSE: {mse_loss:.2f}",
+                  transform=y_ax.transAxes,
+                    fontsize=16,
+                    bbox=dict(facecolor=COLORS[1], alpha=0.5))
 
     # Plotting predictions for f'
+    y_prime_ax.plot(test_x.numpy(), mean[:, 1].numpy(), color=COLORS[1])
+    y_prime_ax.fill_between(
+        test_x.numpy(), lower[:, 1].numpy(), upper[:, 1].numpy(), alpha=0.5,
+        color=COLORS[1]
+    )
     y_prime_ax.plot(train_x.numpy(), train_y[:, 1].numpy(),
                     "k*")
-    y_prime_ax.plot(test_x.numpy(), mean[:, 1].numpy(), "b")
-    y_prime_ax.fill_between(
-        test_x.numpy(), lower[:, 1].numpy(), upper[:, 1].numpy(), alpha=0.5
-    )
     y_prime_ax.legend(["Observed Derivatives", "Mean", "Confidence"])
     y_prime_ax.set_title(r"Derivatives with respect to $\alpha$")
     y_prime_ax.set_xlim([0, 1])
@@ -178,11 +183,24 @@ def save_plot_scgp(
     y_prime_ax.set_ylabel(r"$\frac{\mathrm{d}}{\mathrm{d}\alpha}f_{\boldsymbol{z}}(\alpha)$")
     if plot_mse:
         # show mse
-        y_prime_ax.text(0.05, 0.95, f"MSE: {mse_loss_prime:.2f}",
-                        transform=y_prime_ax.transAxes)
+        y_prime_ax.text(0.7, 0.05, f"MSE: {mse_loss_prime:.2f}",
+                  transform=y_prime_ax.transAxes,
+                    fontsize=16,
+                    bbox=dict(facecolor=COLORS[1], alpha=0.5))
 
     save_path = PATH / "experiments" / str(dataset_name) 
     save_path.mkdir(parents=True, exist_ok=True)
+
+    f.suptitle("Shape-constrained Gaussian Process (SCGP)",
+               fontsize=18,
+               color=COLORS[1],
+               fontweight='bold')
+    
+    # f.subplots_adjust(top=0.85, bottom=0.15, left=0.2, hspace=0.8)
+
+    # f.patch.set_linewidth(6)
+    # f.patch.set_edgecolor(COLORS[1])
+    
 
     f.savefig(save_path / (name + ".png"), dpi=600, bbox_inches="tight")
     plt.close(f)
@@ -273,11 +291,12 @@ def save_plot_gp(
     upper = upper.cpu()
     
     # Plotting predictions for f
-    y_ax.plot(train_x.numpy(), train_y.numpy(), "k*")
-    y_ax.plot(test_x.numpy(), mean.numpy(), "b")
+    y_ax.plot(test_x.numpy(), mean.numpy(), color=COLORS[0])
     y_ax.fill_between(
-        test_x.numpy(), lower.numpy(), upper.numpy(), alpha=0.5
+        test_x.numpy(), lower.numpy(), upper.numpy(), alpha=0.5,
+        color=COLORS[0]
     )
+    y_ax.plot(train_x.numpy(), train_y.numpy(), "k*")
     y_ax.legend(["Observed Values", "Mean", "Confidence"])
     y_ax.set_title("Function values")
     y_ax.set_xlim([0, 1])
@@ -286,12 +305,23 @@ def save_plot_gp(
     y_ax.set_ylabel(r"$f_{\boldsymbol{z}}(\alpha)$")
     if plot_mse:
         # show mse
-        y_ax.text(0.05, 0.95, f"MSE: {mse_loss:.2f}",
-                  transform=y_ax.transAxes)
-
+        y_ax.text(0.7, 0.05, f"MSE: {mse_loss:.2f}",
+                  transform=y_ax.transAxes,
+                  fontsize=16,
+                  bbox=dict(facecolor=COLORS[0], alpha=0.5))
     save_path = PATH / "experiments" / str(dataset_name)
     save_path.mkdir(parents=True, exist_ok=True)
 
+    f.suptitle("Gaussian Process (GP)",
+               fontsize=18,
+               color=COLORS[0],
+               fontweight='bold')
+    
+    # f.subplots_adjust(top=0.85, bottom=0.15, left=0.2, hspace=0.8)
+
+    # f.patch.set_linewidth(6)
+    # f.patch.set_edgecolor(COLORS[0])
+    
     f.savefig(save_path / (name + ".png"), dpi=600, bbox_inches="tight")
     plt.close(f)
     

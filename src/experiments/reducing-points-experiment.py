@@ -11,10 +11,10 @@ LOGGING = False
 
 if __name__ == "__main__":
     datasets = {
-        "uniform_new_HC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_HC.csv",
+        # "uniform_new_HC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_HC.csv",
         "uniform_new_MC": DATA_PATH / "Gaussian_logCA0_uniform_J=20_MC.csv",
-        "adaptive_new_HC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_HC.csv",
-        "adaptive_new_MC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_MC.csv",
+        # "adaptive_new_HC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_HC.csv",
+        # "adaptive_new_MC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_MC.csv",
     }
 
     models = {
@@ -33,8 +33,8 @@ if __name__ == "__main__":
     }
     
     scenarios = {
-        "nobs": list(range(6, 21, 2)),
-        # "nobs": [10,],
+        # "nobs": list(range(6, 21, 2)),
+        "nobs": [10, 20],
     }
     
     mse_df = pd.DataFrame(columns=["model", "scenario", "dataset", "mse"])
@@ -85,6 +85,6 @@ if __name__ == "__main__":
                     continue
                 
     # save mse_df
-    print("Saving mse_df")
-    mse_df.to_csv(PATH / "results" / "mse_df.csv", index=False)
+    # print("Saving mse_df")
+    # mse_df.to_csv(PATH / "results" / "mse_df.csv", index=False)
     # print(mse_df)
