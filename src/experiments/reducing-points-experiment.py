@@ -34,7 +34,7 @@ if __name__ == "__main__":
     
     scenarios = {
         "nobs": list(range(6, 21, 2)),
-        # "nobs": [10, 20],
+        # "nobs": [20],
     }
     
     mse_df = pd.DataFrame(columns=["model", "scenario", "dataset", "mse"])

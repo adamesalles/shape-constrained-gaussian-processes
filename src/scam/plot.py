@@ -1,8 +1,6 @@
-import pandas as pd
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-import torch
 import pathlib
 
 # Define colors
@@ -24,13 +22,17 @@ datasets = {
         "adaptive_new_MC": DATA_PATH / "Gaussian_logCA0_adaptive_J=20_MC.csv",
     }
 
+
 # Loading data
-def load_data(path: str) -> tuple:
-    data = np.loadtxt(path, delimiter=",", skiprows=1, dtype=np.float32)
+def load_data(path: str, se: bool = False) -> tuple:
+    data = np.loadtxt(path, delimiter=",", skiprows=2, dtype=np.float32)
     x_train = data[:, 0]
     y_train = data[:, 1]
-    
+    if se:
+        se_train = data[:, 2]
+        return x_train, y_train, se_train
     return x_train, y_train
+
 
 def remove_points(train_x, train_y, nobs):
     """
@@ -51,7 +53,7 @@ if __name__ == '__main__':
         else:
             x_true, y_true = true_MC_x[1:], true_MC_y[1:]
             
-        for nobs in range(10, 21, 2) + [21]:
+        for nobs in range(10, 21, 2):
             fig, ax = plt.subplots(1, 1, figsize=(5, 4), tight_layout=True)
             name = f"{model}_{nobs}_nobs"
             io_path = PATH / "experiments" / str(dataset_name)
@@ -60,10 +62,15 @@ if __name__ == '__main__':
             train_x, train_y = load_data(dataset_path)
             train_x, train_y = remove_points(train_x, train_y, nobs)
             
-            test_x, test_y = load_data(io_path / f'{name}_.csv')
+            test_x, test_y, test_se = load_data(io_path / f'{name}_.csv',
+                                                se=True)
             mse_loss = np.mean((test_y - y_true)**2)
             
             ax.plot(x_true, y_true, color=COLORS[0])
+            ax.fill_between(
+                test_x, test_y + (2*test_se), test_y - (2*test_se),
+                color=COLORS[0], alpha=0.5
+            )
             ax.plot(train_x, train_y, "k*")
             ax.legend(["Observed Values", "Mean", "Confidence"])
             ax.set_title("Function values")
@@ -77,10 +84,11 @@ if __name__ == '__main__':
                     bbox=dict(facecolor=COLORS[0], alpha=0.5))
             
             fig.suptitle("Shape Constrained Additive Model (SCAM)",
-               fontsize=18,
-               color=COLORS[0],
-               fontweight='bold')
+                         fontsize=18,
+                         color=COLORS[0],
+                         fontweight='bold')
 
             # plt.show()
-            fig.savefig(io_path / (name + ".png"), dpi=600, bbox_inches="tight")
+            fig.savefig(io_path / (name + ".png"), dpi=600,
+                        bbox_inches="tight")
             plt.close(fig)

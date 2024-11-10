@@ -3,6 +3,7 @@ import gpytorch
 import matplotlib
 import pathlib
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm, trange
 from scgp.models import GP, SCGP
@@ -25,7 +26,7 @@ print(f'Using {device} as device')
 
 # Loading data
 def load_data(path: str) -> tuple:
-    data = np.loadtxt(path, delimiter=",", skiprows=1, dtype=np.float32)
+    data = np.loadtxt(path, delimiter=",", skiprows=2, dtype=np.float32)
     x_train = torch.from_numpy(data[:, 0])
     y_train = torch.stack(
         [torch.from_numpy(data[:, 1]), torch.from_numpy(data[:, 2])], -1
@@ -154,7 +155,9 @@ def save_plot_scgp(
         color=COLORS[1]
     )
     y_ax.plot(train_x.numpy(), train_y[:, 0].numpy(), "k*")
-    y_ax.legend(["Observed Values", "Mean", "Confidence"])
+
+    y_ax.legend(["Observed Values", "Mean", "Confidence"],
+                loc="upper left")
     y_ax.set_title("Function values")
     y_ax.set_xlim([0, 1])
     # y_ax.set_ylim([-7.5, 12.5])
@@ -162,7 +165,7 @@ def save_plot_scgp(
     y_ax.set_ylabel(r"$f_{\boldsymbol{z}}(\alpha)$")
     if plot_mse:
         # show mse in bottom right (larger font)
-        y_ax.text(0.7, 0.05, f"MSE: {mse_loss:.2f}",
+        y_ax.text(0.5, 0.05, f"MSE: {mse_loss:.2f}",
                   transform=y_ax.transAxes,
                     fontsize=16,
                     bbox=dict(facecolor=COLORS[1], alpha=0.5))
@@ -175,7 +178,9 @@ def save_plot_scgp(
     )
     y_prime_ax.plot(train_x.numpy(), train_y[:, 1].numpy(),
                     "k*")
-    y_prime_ax.legend(["Observed Derivatives", "Mean", "Confidence"])
+
+    y_prime_ax.legend(["Observed Derivatives", "Mean", "Confidence"],
+                      loc="upper left")
     y_prime_ax.set_title(r"Derivatives with respect to $\alpha$")
     y_prime_ax.set_xlim([0, 1])
     
@@ -183,7 +188,7 @@ def save_plot_scgp(
     y_prime_ax.set_ylabel(r"$\frac{\mathrm{d}}{\mathrm{d}\alpha}f_{\boldsymbol{z}}(\alpha)$")
     if plot_mse:
         # show mse
-        y_prime_ax.text(0.7, 0.05, f"MSE: {mse_loss_prime:.2f}",
+        y_prime_ax.text(0.5, 0.05, f"MSE: {mse_loss_prime:.2f}",
                   transform=y_prime_ax.transAxes,
                     fontsize=16,
                     bbox=dict(facecolor=COLORS[1], alpha=0.5))
@@ -201,7 +206,21 @@ def save_plot_scgp(
     # f.patch.set_linewidth(6)
     # f.patch.set_edgecolor(COLORS[1])
     
-
+    # save csv with test data
+    if save_path:
+        pd.DataFrame(
+            {
+                "x": test_x.numpy(),
+                "f": test_y[:, 0].numpy(),
+                "f_prime": test_y[:, 1].numpy(),
+                "mean": mean[:, 0].numpy(),
+                "mean_prime": mean[:, 1].numpy(),
+                "lower": lower[:, 0].numpy(),
+                "lower_prime": lower[:, 1].numpy(),
+                "upper": upper[:, 0].numpy(),
+                "upper_prime": upper[:, 1].numpy(),
+            }
+        ).to_csv(save_path / (name + "_.csv"), index=False)
     f.savefig(save_path / (name + ".png"), dpi=600, bbox_inches="tight")
     plt.close(f)
     
@@ -305,7 +324,7 @@ def save_plot_gp(
     y_ax.set_ylabel(r"$f_{\boldsymbol{z}}(\alpha)$")
     if plot_mse:
         # show mse
-        y_ax.text(0.7, 0.05, f"MSE: {mse_loss:.2f}",
+        y_ax.text(0.5, 0.05, f"MSE: {mse_loss:.2f}",
                   transform=y_ax.transAxes,
                   fontsize=16,
                   bbox=dict(facecolor=COLORS[0], alpha=0.5))
@@ -321,7 +340,16 @@ def save_plot_gp(
 
     # f.patch.set_linewidth(6)
     # f.patch.set_edgecolor(COLORS[0])
-    
+    if save_path:
+        pd.DataFrame(
+            {
+                "x": test_x.numpy(),
+                "f": test_y.numpy(),
+                "mean": mean.numpy(),
+                "lower": lower.numpy(),
+                "upper": upper.numpy(),
+            }
+        ).to_csv(save_path / (name + "_.csv"), index=False)
     f.savefig(save_path / (name + ".png"), dpi=600, bbox_inches="tight")
     plt.close(f)
     

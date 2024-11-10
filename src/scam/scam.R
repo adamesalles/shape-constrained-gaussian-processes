@@ -17,7 +17,7 @@ data_paths <- list(
 )
 
 # Define nobs scenarios
-nobs_scenarios <- append(seq(6, 20, by = 2), 21)
+nobs_scenarios <- seq(6, 20, by = 2)
 
 # Data frame to store results
 results <- data.frame(model = character(), scenario = integer(), dataset = character(), mse = numeric())
@@ -28,7 +28,7 @@ for (dataset_name in names(data_paths)) {
   dataset_path <- data_paths[[dataset_name]]
   
   # Read data
-  data <- read_csv(dataset_path)
+  data <- read_csv(dataset_path) %>% filter(!row_number() == 1)
   x <- data$a0
   y <- data$lc_a0
   
@@ -54,22 +54,16 @@ for (dataset_name in names(data_paths)) {
     if (!is.null(model)) {
       # Generate predictions on a regular grid from 0 to 1
       grid <- data.frame(x_sampled = x_true)
-      grid$y_pred <- predict(model, newdata = grid)
+      p <- predict(model, newdata = grid, se.fit = TRUE)
+      grid$y_pred <- p$fit
+      grid$se <- p$se.fit
+      
+      plot(model)
       # print("Got here")
       
       # Save predictions
       output_file <- paste0("../../experiments/", dataset_name, "/SCAM_", nobs , "_nobs_",  ".csv")
       write.csv(grid, output_file, row.names = FALSE)
-      
-      # Calculate Mean Squared Error (MSE) on the sampled data
-      #y_pred_sampled <- predict(model, newdata = data.frame(x = x_sampled))
-      #mse <- mean((y_sampled - y_pred_sampled)^2)
-      
-      # Store results
-      #results <- rbind(
-      #  results,
-      #  data.frame(model = "SCAM", scenario = nobs, dataset = dataset_name, mse = mse)
-      #)
       
       cat("Finished SCAM model on", dataset_name, "with nobs =", nobs, "\n")
       rm(grid)
