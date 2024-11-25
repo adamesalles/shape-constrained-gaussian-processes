@@ -133,6 +133,8 @@ def save_plot_scgp(
     f, (y_ax, y_prime_ax) = plt.subplots(1, 2,
                                          figsize=(10, 4), tight_layout=True)
 
+    # f.patch.set_facecolor("#F6FBFD")
+    
     train_x = train_x.cpu()
     train_y = train_y.cpu()
     test_x = test_x.cpu()
@@ -159,6 +161,7 @@ def save_plot_scgp(
     y_ax.legend(["Observed Values", "Mean", "Confidence"],
                 loc="upper left")
     y_ax.set_title("Function values")
+    # y_ax.set_facecolor("#F6FBFD")
     y_ax.set_xlim([0, 1])
     # y_ax.set_ylim([-7.5, 12.5])
     y_ax.set_xlabel(r"$\alpha$")
@@ -183,6 +186,7 @@ def save_plot_scgp(
                       loc="upper left")
     y_prime_ax.set_title(r"Derivatives with respect to $\alpha$")
     y_prime_ax.set_xlim([0, 1])
+    # y_prime_ax.set_facecolor("#F6FBFD")
     
     y_prime_ax.set_xlabel(r"$\alpha$")
     y_prime_ax.set_ylabel(r"$\frac{\mathrm{d}}{\mathrm{d}\alpha}f_{\boldsymbol{z}}(\alpha)$")
@@ -292,7 +296,7 @@ def save_plot_gp(
 
     # Initialize plots
     f, y_ax = plt.subplots(1, 1, figsize=(5, 4), tight_layout=True)
-
+    # f.patch.set_facecolor("#F6FBFD")
     # Make predictions
     mse = torch.nn.MSELoss()
     with torch.no_grad(), gpytorch.settings.max_cg_iterations(100):
@@ -319,6 +323,7 @@ def save_plot_gp(
     y_ax.legend(["Observed Values", "Mean", "Confidence"])
     y_ax.set_title("Function values")
     y_ax.set_xlim([0, 1])
+    # y_ax.set_facecolor("#F6FBFD")
     # y_ax.set_ylim([-7.5, 12.5])
     y_ax.set_xlabel(r"$\alpha$")
     y_ax.set_ylabel(r"$f_{\boldsymbol{z}}(\alpha)$")

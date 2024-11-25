@@ -2,6 +2,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,julia,latex
 
 *.ipynb
+*.csv
 *.ipynb_checkpoints/
 
 ### Old code ###

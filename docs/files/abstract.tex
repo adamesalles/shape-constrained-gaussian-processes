@@ -1,0 +1,13 @@
+% \setlength{\absparsep}{18pt} 
+\begin{abstract}
+    In many applications, one is interested in reconstructing a function $f$ when only few (potentially very noisy) evaluations $f(x)$ are available, usually due to budget restrictions.
+    % Sometimes evaluations of the derivatives $f^{)i}$, $i = 1, 2, \ldots$ are also available.
+    When information about the ``shape'' of $f$ is available, e.g.,  whether it is monotonic, convex/concave, etc., it is desirable to include this information into the curve-fitting  procedure.
+    Here we build on the Gaussian process literature to propose a comprehensive framework for flexibly modeling $f$ and its first two derivatives given evaluations of $f$, $f^\prime$, $f^{\prime\prime}$ at potentially irregular grids. 
+    We show how to include shape-constraints in a principled way through the prior and apply the developed methods to function emulation for noisy Markov chain Monte Carlo.
+    In the context of the Normalized Power Prior (NPP), we obtain some intuition about the information that the derivative processes bring to the regression, although this may propagate uncertainty and harm the quality of the fit.
+    Furthermore, we evaluate how the proposed method compares to SCAM, one of the main frequentist methods for function emulation with shape constraints.
+\comLM{We'll have some other examples from the literature here}.
+
+{\bfseries Key-words: Bayesian Curve Fitting; Gaussian Processes; Shape Constraints; Function Emulation; Noisy Markov Chain Monte Carlo.}
+\end{abstract}

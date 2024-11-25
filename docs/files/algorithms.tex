@@ -1,0 +1,52 @@
+\section{Algorithms}
+
+\subsection{Adaptive grid-building}
+
+\begin{algorithm}[H]
+    \caption{Adaptive grid-building}
+    \label{alg:bisection-type}
+    \begin{algorithmic}
+    \Require $m> 0$, $M>m$, $v_1, v_2 > 0$, $J \in \mathbb{N}$.
+    \Procedure{Initialise}{}
+      \State $\boldsymbol{x} = \{x_1, \ldots, x_J\}$, $\boldsymbol{z} = \{z_1, \ldots, z_J\}$, $\boldsymbol{z^\prime} = \{z_1^\prime, \ldots, z_J^\prime\}$,  and $\boldsymbol{z^{\prime\prime}} = \{z_1^{\prime\prime}, \ldots, z_J^{\prime\prime}\}$.
+    \EndProcedure
+    \State $x_1 \gets m$ and $x_J \gets M$
+    \State $z_1 \gets l(m)$ and $z_J \gets l(M)$
+    \State $z_1^\prime \gets l^\prime(m)$ and $z_J^\prime \gets l^\prime(M)$
+    \State $z_1^{\prime\prime} \gets l^{\prime\prime}(m)$ and $z_J^{\prime\prime} \gets l^{\prime\prime}(M)$
+    \State $J  \gets J-2$
+    \If{$\operatorname{sgn}(z_1^\prime) = \operatorname{sgn}(z_J^\prime)$}
+    \For{$k \leq J$} \Comment{Build regular grid}
+    \State $x_k \gets x_{k-1} + (M-m)/J$;
+    \State $z_k \gets l(x_k)$;
+    \State $z_k^\prime \gets l^\prime(x_k)$;
+    \State $z_k^{\prime\prime} \gets l^{\prime\prime}(x_k)$;
+    \EndFor
+    \ElsIf{$\operatorname{sgn}(z_1^\prime) \neq \operatorname{sgn}(z_J^\prime)$} \Comment{Adaptive step}
+    \Procedure{Initialise}{}
+      \State $\boldsymbol{L} = \{L^{(1)}, \ldots, L^{(J)}\}$, $\boldsymbol{U} = \{U^{(1)}, \ldots, U^{(J)}\}$, $\boldsymbol{\delta} = \{\delta^{(1)}, \ldots, \delta^{(J)}\}$;
+      \State $L^{(1)} = m$, $U^{(1)} = M$;
+     \EndProcedure
+     \For{$ 1 < j$} 
+        \State $x_j \gets (U^{(j)} + L^{(j)})/2$;
+        \State $z_j \gets l(x_j)$;
+        \State $z_j^\prime \gets l^\prime(x_j)$;
+        \State $z_j^{\prime\prime} \gets l^{\prime\prime}(x_j)$;
+        \If{$\operatorname{sgn}(z_k^\prime) = \operatorname{sgn}(z_1^\prime)$}
+        \State $L^{(j)} \gets z_j$ and $U^{(j)} \gets U^{(k-1)}$;
+        \Else{ $L^{(j)} \gets L^{(j-1)}$ and $U^{(j)} \gets z_j $;}
+        \EndIf
+        \State $\delta^{(j)} = |x_{j} - x_{j-1}|$;
+        \State $j \gets j -1$
+        \If{J=0} Stop
+        \ElsIf{$\delta^{(j)} < v_1m$} Stop
+        \Else \: Find $x_i \in \left(\max(0, x_j-v_2m), \min(x_k + v_2m, M) \right)$ s. t. $|x_i-x_{i+1}|$ is largest;
+        \State $x_j = |x_i - x_{i+1}|/2$;
+        \State $z_j \gets l(x_j)$;
+        \State $z_j^\prime \gets l^\prime(x_j)$;
+        \State $z_j^{\prime\prime} \gets l^{\prime\prime}(x_j)$;
+        \EndIf
+       \EndFor
+    \EndIf
+    \end{algorithmic}
+\end{algorithm}

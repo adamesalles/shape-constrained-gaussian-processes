@@ -1,0 +1,104 @@
+\documentclass[a4paper, notitlepage, 12pt]{article}
+\usepackage{geometry}
+% \fontfamily{times}
+\geometry{verbose,tmargin=30mm,bmargin=25mm,lmargin=25mm,rmargin=25mm}
+% \pagestyle{empty}
+% end configs
+\usepackage{setspace,relsize}    
+\usepackage[british]{babel}
+\usepackage{moreverb}                        
+\usepackage{xurl}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{hyperref}
+\urlstyle{same}
+\hypersetup{colorlinks=true,citecolor=OrangeRed}
+\usepackage{amsmath}
+\usepackage{mathtools} 
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage[htt]{hyphenat}
+\usepackage{indentfirst}
+\setlength{\marginparwidth}{2cm} 
+\usepackage{todonotes}
+\usepackage[authoryear,round]{natbib}
+\usepackage[pdftex]{lscape}
+\usepackage[utf8]{inputenc}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[T1]{fontenc}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage{libertine}
+\usepackage[libertine]{newtxmath}
+
+\usepackage{pagecolor}
+\usepackage{lipsum}
+\usepackage{float}
+\usepackage{dsfont}
+\usepackage{zref-clever}
+
+\newif\ifcomments
+% \commentstrue
+
+
+% \pagecolor{black}
+% \color{white}
+
+\usepackage[autostyle, english = british]{csquotes}
+\MakeOuterQuote{"}
+\input{commands}
+
+% Title Page
+\title{\vspace{-9ex}\centering \bf Bayesian shape-constrained curve-fitting with Gaussian processes: prior elicitation and computation}
+\author{
+Eduardo Adame Salles  \&
+Luiz Max Carvalho\\
+School of Applied Mathematics, Getulio Vargas Foundation, Brazil.
+}
+\DeclareRobustCommand{\stirling}{\genfrac\{\}{0pt}{}}
+
+
+
+\begin{document}
+\maketitle
+
+\input{files/abstract.tex}
+
+\input{files/background.tex}
+
+\input{files/gps.tex}
+
+\input{files/other_shape_constrained.tex}
+
+% Experimental results
+% Benchmark and comparision
+\comLM{You can start filling this up with the stuff on section 2 of the "shape constrained NPP" manuscript}
+\input{files/experiments.tex}
+
+\input{files/future_work.tex}
+
+\section*{Code availability}
+\label{sec:code}
+
+The code is available at \url{https://github.com/adamesalles/shape-constrained-gaussian-processes}.
+
+\section*{Acknowledgements}
+
+
+\newpage
+\bibliographystyle{plainnat}
+\bibliography{scgp.bib}
+
+\newpage
+\appendix
+
+\setcounter{table}{0}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+
+\input{files/proofs.tex}
+\input{files/algorithms.tex}
+
+\end{document}

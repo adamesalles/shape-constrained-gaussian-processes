@@ -1,0 +1,187 @@
+\section{Gaussian Processes}
+
+Introducing the main focus of this work, consider the model:
+
+\begin{equation}
+    \bfY = f(\bfX) + \epsilon,\ \epsilon \sim \cN(0, \sigma^2 I), 
+\end{equation}
+
+where you aim to find a function \( f \) that best fits your data according to some criterion.
+As discussed in \zcref{sec:intro}, there are many ways to approach this problem, but from a parametric perspective, one would assume a specific parametric form for \( f \).
+This implies that there exists a map \( T:\Theta \to \cF \) such that for every \( \theta \in \Theta \), we can obtain a function \( f_\theta \) from its function space \( \cF \), then find a parameter \( \htheta \) that minimizes a certain loss function \( L(\theta, \htheta) \), preferably convex.
+The most traditional approaches include maximum likelihood estimation (frequentist) and maximum a posteriori estimation (Bayesian), which have some favorable statistical properties.
+
+In contrast to this approach, we introduce a Gaussian Process as a non-parametric method for modeling \( f \). Here, \( f \) is modeled as a random function, rather than a deterministic one, which allows us to quantify the uncertainty associated with \( f \) (and its potential derivatives). Generally, a Gaussian Process (GP) is described as:
+
+\begin{align}
+    \bfY \mid (\bff, \bfX) &\sim \cN(\bff, \sigma^2 I),\\
+    \bff \mid \bfX &\sim \gp(\mu(\bfX), K(\bfX, \bfX)),
+\end{align}
+
+where \( \mu \) is called the mean function and \( K \) is the covariance function.
+We denote that \( \bff \) represents \( f \) applied to each entry of \( \bfX \), the same goes for \( \mu(\bfX) \), and \( K(\bfX, \bfX) \) denotes applying \( K \) to each pairwise combination of entries in \( X \). 
+
+However, to support our goal of extending the model to include shape constraints, we need to formally define and review some basic properties of Gaussian Processes.
+
+
+\subsection{Definition and Key Properties}
+
+For our purposes, we can define a Gaussian Process as follows:
+\begin{defi}[Gaussian Process (GP)]
+\label{def:gp}
+    A Gaussian Process is a collection of random variables, such that any finite number of them has a joint Normal distribution.
+    For a function \( f: \cX \to \bR \), modeled as \( f(\bfX) \mid \bfX \sim \gp(m(\bfX), k(\bfX, \bfX')) \), where \( m(\bfX) \) and \( k(\bfX, \bfX') \) represent the mean and kernel (or covariance) functions applied to each input \( X \in \bfX \), respectively.
+    The kernel function must be symmetric and satisfy \( k(X, X) > 0 \) for each \( X \). 
+\end{defi}
+
+Considering the model \( \bfY \mid (\bff, \bfX) \sim \cN(\bff, \sigma^2 I) \) with \( \bff \mid \bfX \sim \gp(m(\bfX), k(\bfX, \bfX')) \), where \( \sigma^2 > 0 \) is a known constant, \( \bfY, \bfX \in \bR^n \) are random vectors, and \( I \) denotes the identity matrix in \( \bR^{n \times n} \), we can take a Bayesian approach and compute a posterior distribution \( \bff \mid \bfX, \bfY \) for a sample size of \( n \).
+In this case, we can sample from any unobserved \( \bfY_\star \) for a new observation \( \bfx_\star \) via the posterior predictive distribution \( p(\bfY_\star \mid \bfy, \bfx_\star, \bfx) \), which is also normally distributed (see appendix \ref{proof:pred}).
+
+\subsubsection{Kernel Functions}
+
+Also called covariance functions, these are fundamental to Gaussian Process modeling.
+
+The choice of kernel function determines the assumed characteristics of the latent function. For example, the squared exponential kernel encodes the assumption that the latent function is smooth, whereas the Matérn kernel encodes the assumption that the latent function is not smooth.
+
+The following properties are necessary for a function to be considered a kernel:
+
+\begin{enumerate}
+\item Symmetry: \( k(x, x') = k(x', x) \);
+\item Positive semi-definiteness: \( \sum_{i=1}^n \sum_{j=1}^n c_i c_j k(x_i, x_j) \geq 0 \) for any \( n \in \bN \), \( c_1, \cdots, c_n \in \bR \), and \( x_1, \cdots, x_n \in \bR \);
+\item Stationarity: \( k(x, x') = k(x - x') \);
+\item Isotropy: \( k(x, x') = k(|x - x'|) \).
+\end{enumerate}
+
+For each type of problem, one kernel may be more suitable than another. Some common examples of kernels are:
+
+\begin{enumerate}
+\item Radial Basis Function (RBF):\ \( k(x, x';\ \sigma^2, l) = \sigma^2 \exp(-\frac{1}{2l^2}d(x,x')) \), which is often the default choice;
+\item Matérn Kernel:\ \( k(x, x';\ \sigma^2, l, \nu) = \sigma^2 \frac{2^{1-\nu}}{\Gamma(\nu)}(\sqrt{2\nu}\frac{d(x, x')}{l})^\nu K_\nu(\sqrt{2\nu}\frac{d(x, x')}{l}) \), where \( K_\nu \) is the modified Bessel function of the second kind and is often a less generic alternative to the RBF;
+\item Linear Kernel: \( k(x, x'; \sigma^2) = \sigma^2 x^Tx' \), commonly used in linear regression problems;
+\item Periodic Kernel:\ \( k(x, x'; \sigma^2, l, p) = \sigma^2 \exp(-\frac{2}{l^2}\sin^2(\frac{\pi}{p}d(x, x'))) \), well-suited for problems with seasonality;
+\item Cosine Kernel:\ \( k(x, x'; \sigma^2, p) = \sigma^2 \cos(\frac{\pi}{p}d(x, x')) \), another less smooth alternative to the periodic kernel.
+\end{enumerate}
+
+where \( x, x' \in \mathcal{X} \), \( d(x, x') \) is the Euclidean distance between \( x \) and \( x' \), \( \sigma^2 \) is the variance, \( l \) is the length scale, \( \nu \) is the smoothness parameter, and \( p \) is the period.
+
+\subsubsection{Optimizing Hyperparameters}
+
+To optimize the hyperparameters of a Gaussian Process, we can maximize the marginal likelihood (also called \textit{type II maximum likelihood}).
+
+This involves maximizing the expected likelihood under the prior, i.e., \( p(\bfY \mid f(\bfX)) = \bE_{f \sim GP(0,k)}[\mathcal{N}(\bfY \mid f(\bfX), \sigma^2 I)] \). More specifically, with the kernel function's parameters denoted generically by \( \omega \), the optimal parameters can be calculated as follows:
+
+\begin{align}
+\hat{\omega} &= \underset{\omega \in \Omega}{\arg \max} \log p(\bfY \mid f(\bfX)) \nonumber \\
+&= \underset{\omega \in \Omega}{\arg \max} \log \mathcal{N}(\bfY \mid 0, k(\bfX, \bfX) + \sigma^2 I) \nonumber \\
+&= -\frac{1}{2} \log \det \left( k(\bfX, \bfX) + \sigma^2 I \right) - \frac{1}{2} \bfY^T \left( k(\bfX, \bfX) + \sigma^2 I \right)^{-1} \bfY \label{eq:kernel_optimization}
+\end{align}
+
+It's also important to note that the procedure assumes the observational noise \( \sigma^2 \) is constant. In this case, we could estimate the kernel parameters for each value of \( \sigma^2 \) using the training set and choose the \( \sigma^2 \) that results in the highest evidence. Another approach is to optimize \( \sigma^2 \) jointly with \( \omega \), as shown below:
+
+\begin{align}
+\sigma^{2}, \hat{\omega} &= \underset{\omega \in \Omega, \sigma^2 \in \bR}{\arg \max} -\frac{1}{2} \log \det \left( k(\bfX, \bfX) + \sigma^2 I \right) - \frac{1}{2} \bfY^T \left( k(\bfX, \bfX) + \sigma^2 I \right)^{-1} \bfY \label{eq:kernel_optimization_joint}
+\end{align}
+
+However, joint optimization of \( \sigma^2 \) and \( \omega \) can be more challenging, and various heuristics can be used to find a local optimum.
+
+\subsection{Variations of Gaussian Processes}
+
+Beyond the traditional form of Gaussian Processes, there are some variations that may be useful for different types of problems, such as changing the problem from regression to classification, or adding shape constraints to the model. In this section, we will discuss some of these variations.
+
+\subsubsection{Fully Bayesian Gaussian Processes}
+
+A method known as \textit{fully Bayesian Gaussian Processes (FBGP)} (as discussed in ~\cite{Riis2022}) for hyperparameter optimization treats the hyperparameters as random variables and assigns a prior distribution to them.
+
+In this case, fitting the Gaussian Process is done jointly with the optimization of the hyperparameters. That is:
+
+\begin{align}
+    p(\bff, \bfth \mid \bfY, \bfX) &\propto p(\bfY \mid \bff) p(\bff \mid \bfth, \bfX) p(\bfth), \nonumber \\
+\end{align}
+
+and thus the posterior predictive distribution for a new point \( \bfX_\star \) is given by:
+
+\begin{align*}
+    p(\bfY_\star \mid \bfY) = \int\int p(\bfY_\star \mid \bff_\star) p(\bff_\star \mid \bfth, \bfY) p(\bfth \mid \bfY)\, \dd\bff_\star\, \dd\bfth,
+\end{align*}
+
+Note that the above integral is taken over all possible values of \( \bff_\star \) and \( \bfth \), which has infinite dimensions.
+However, one way to approximate this integral is to recognize that we can reuse the posterior predictive distribution of a traditional GP, reducing the problem to:
+
+\begin{align*}
+    p(\bfY_\star \mid \bfY) = \int p(\bfY_\star \mid \bfY, \bfth_\star) p(\bfth \mid \bfY)\, \dd\bfth,
+\end{align*}
+
+With this, we can use the following approximation by sampling from \( p(\bfth \mid \bfY) \) using MCMC:
+
+\begin{align*}
+    p(\bfY_\star \mid \bfY) \approx \frac{1}{S} \sum_{s=1}^S p(\bfY_\star \mid \bfY, \bfth_s),\ \bfth_s \sim p(\bfth \mid \bfY).
+\end{align*}
+
+\subsubsection{Gaussian Processes for Classification}
+
+Although Gaussian Processes are primarily suited for regression problems, they can be adapted for classification tasks.
+In the case of binary classification, we can model the likelihood as a Bernoulli distribution, with the link function being the sigmoid function. That is:
+
+\begin{align}
+    p(Y_i \mid f_i) &= \sigma(f_i)^{Y_i} (1 - \sigma(f_i))^{1-Y_i}. \nonumber \\
+\end{align}
+
+It follows that:
+
+\begin{align*}
+     p(\bff\mid \bfY, \bfX) &\propto \log p(\bfY\mid\bff) + \log p(\bff\mid\bfX),\\ &=  p(\bfY\mid\bff) - \dfrac{1}{2}\bff^Tk(\bfX,\bfX)^{-1}\bff - \dfrac{1}{2}\log|k(\bfX,\bfX)| - \dfrac{N}{2}\log 2\pi
+\end{align*}
+
+However, to facilitate fitting and using the posterior predictive distribution, it is common to use a Laplace approximation for the posterior distribution of \( \bff \).
+
+\paragraph{Laplace Method}
+
+The Laplace method is an optimization technique that approximates the posterior distribution of a Gaussian Process by a Normal distribution.
+The idea is to approximate the posterior distribution \( p(\bff \mid \bfY, \bfX) \) with a Normal distribution \( q(\bff) \), obtained by maximizing the marginal likelihood \( p(\bfY \mid \bff, \bfX) \)~\cite{Riihimaki2013}.
+
+\paragraph{Latent and Approximate Gaussian Processes}
+
+In many cases, exact inference of a Gaussian Process can be computationally expensive, especially when the number of observations is large.
+To address this issue, it is common to use approximation methods, such as the Laplace method, the latent variable method, or numerical integration methods \cite{Williams1998}. 
+
+
+\subsection{Introducing Shape Constraints}
+\label{sec:scgp}
+
+The main result that allows us to introduce the approach of shape-constrained Gaussian Processes (SCGPs) was also introduced by \cite{Rasmussen2005}, which is:
+
+\begin{property}[Derivative of a GP is a GP]
+\label{prop:gpderiv}
+    Let \( (\bff \mid \bfX) \sim \gp(m(\bfX), k(\bfX, \bfX')) \), then for each partial derivative \( \frac{\partial f}{\partial X_d} \), we have:
+
+    \begin{align}
+        \cov\left(f_i, \frac{\partial f_j}{\partial {X_d}_j}\right) &= \frac{\partial}{\partial {X_d}_j} k(X_i, X_j)
+        & &\text{and} &
+        \cov\left(\frac{\partial f_i}{\partial {X_d}_i},  \frac{\partial f_j}{\partial {X_e}_j}\right) &= \frac{\partial^2}{\partial {X_d}_i \partial {X_e}_j} k(X_i, X_j).
+    \end{align}
+
+    Linearity also holds for the expected values, so:
+
+    \begin{equation}
+    \label{eq:scgp_dist}
+    \bvecc{\bff}{\bff'} \mid \bfX \sim \gp\left(\bvecc{m(\bfX)}{ \frac{\partial}{\partial \bfX}m(\bfX)}, \begin{bmatrix}
+        k(\bfX, \bfX') & \frac{\partial}{\partial \bfX'} k(\bfX, \bfX')\\ 
+        \frac{\partial}{\partial \bfX} k(\bfX, \bfX') & \frac{\partial^2}{\partial \bfX \partial \bfX'} k(\bfX, \bfX')
+    \end{bmatrix}\right).
+    \end{equation}
+
+    This holds because the Normal distribution is fully characterized by its mean and covariance matrix.
+\end{property}
+
+Considering the posterior predictive distribution and equation \eqref{eq:scgp_dist}, we are able to perform shape-constrained Gaussian Process regression using observations of \( ((x_1, y), (x_2, y')) \) that do not need to be at the same input values.
+
+\subsubsection{Conditional SCGPs}
+\label{sec:scgp_cond}
+
+In addition to the proposed method of fitting an SCGP through the joint distribution between \( f \) and its derivatives, there are other ways to fit an SCGP. One such approach is by \cite{Berger2016}, which suggests fitting a Gaussian Process \( Z(\cdot) \) by conditioning on an extension of its derivative process \( Z^{\prime +}(t) = Z'(t) \lor 0 \), which results in the following distribution:
+
+\begin{equation*}
+    Z(t) \mid \{ Z^{\prime +}(t)\}_{s=1}^n \sim \cN (\mu + K^{01}(t,\bfs)K^{11}(\bfs,\bfs)^{-1}Z^{\prime +}(\bfs), K^{\triangle}(t,t)),
+\end{equation*}
+
+where \( K^{01} \) and \( K^{11} \) are the covariance matrices between \( Z \) and \( Z^{\prime +} \) and between \( Z^{\prime +} \), respectively, and \( K^{\triangle} := K^{00} - K^{01}{(K^{11})}^{-1}K^{01} \).

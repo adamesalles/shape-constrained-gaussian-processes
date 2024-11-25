@@ -1,0 +1,38 @@
+\section{Background}
+\label{sec:intro}
+
+In many scenarios, evaluating a computationally intensive function  $f : \mathcal{D}(f) \to \mathbb{R}^d$ across an extensively large collection of points $S$ is necessary.
+A typical strategy in such instances is to construct a more cost-effective estimator $\hf(q) \approxeq f(q)\ \forall\ q\in Q \subseteq S$, and then use $\hf(q)$ for approximation over  $q\in (\cD(f) \setminus Q)$, covering the remaining points in the domain.
+There are numerous established techniques that aim for the same goal. Two of the most prevalent strategies are:
+
+\begin{enumerate}
+\item Restricting the set of potential functions to a predefined parametric family (e.g., linear, exponential, etc.); or
+\item Introducing uncertainty across all feasible functions within the space containing $f$, and preferentially weighting those considered more probable (e.g., a particular class of functions).
+\end{enumerate}
+
+Our study concentrates on \textbf{Gaussian processes (GPs)}, which facilitate direct uncertainty quantification from our estimator, similar to some models from the second approach.
+This enables the computation of probabilities such as $\pr[\hf(a) \in A]$ for each $a \in \cD(\hf)$ and every $A \subseteq \im(\hf)$.
+A proper Gaussian processes discussion is reserved to \autoref{sec:gp}, as well as its foundation in Bayesian statistics.
+
+Furthermore, we aim to improve the assignment of prior probabilities by incorporating shape constraints on $f$, like monotonicity and convexity. 
+The concept involves introducing derivative information of $\hf$, considering its correlation with $\hf$ itself.
+On the other hand, a derivative of a GP is still a GP, which help us to operate within a Gaussian Process framework.
+This methodology, initially explored in           \citet{Rasmussen2005, Riihimaki2010}; and \cite{Berger2016}, will receive treatment in \autoref{sec:scgp}.
+
+\subsection{Related work and contributions}
+
+
+\comLM{The text below needs to be moved elsewhere (probably into the general GP section).
+What we need here is (i) a brief description of the proposed solutions to the shape-constrained curve-fitting problem (ii) a brief description of what has been done in regards to shape-constrained GPs and (iii) the most important: a list of the gaps that were left and that we fill.}  
+
+
+The initial contribution towards incorporating shape constraints in a Gaussian process was discussed in a section of \cite{Rasmussen2005}, focusing on the probability distributions of GP derivatives.
+In contrast, \cite{Riihimaki2010} made a significant stride by establishing a framework for shape constraints, leveraging first derivative data for GP fitting and devising a method to enforce monotonicity through virtual points.
+
+Subsequently, \cite{Berger2016} extended these ideas to $n$-th order derivatives, paving the way for more robust constraints.
+Furthermore, this study introduced advanced techniques within the Bayesian framework to effectively implement these constraints.
+
+% As an example, when dealing with emulating functions for doubly intractable distributions, \cite{Park2020} has brought a approach using Gaussian processes and all its
+
+
+% \cite{Betancourt2017,Carpenter2017}

@@ -1,0 +1,15 @@
+\section{Future Work}
+
+Through the work developed in this study, we explored the propagation of shape constraints from the derivatives of a function to the function itself, using a regression model based on Gaussian Processes.
+Gaussian Process theory is a powerful tool for modeling functions and their derivatives, allowing direct quantification of uncertainty and the handling of shape constraints.
+Moreover, the lack of implementation for shape constraints in Gaussian Processes is a problem that was addressed in this work, proposing a method to incorporate shape constraints in Gaussian Processes, utilizing state-of-the-art tools such as the \texttt{Adam} optimization method and the \texttt{GPyTorch} library for Gaussian Processes.
+
+The experiments conducted showed that propagating shape constraints from the derivatives of a function to the function itself is effective, at the cost of increased uncertainty, which can be detrimental in high-curvature scenarios with irregular grids.
+However, in other scenarios, the method proved promising compared to traditional Gaussian Processes, especially considering that derivative evaluations may be available at no additional cost in certain applications.
+It was observed that the quality of the Gaussian Process fit on the derivatives and the distribution of the function’s evaluation points were crucial factors for the propagation of shape constraints to the function itself.
+
+Considering the computational limitations of using Gaussian Processes in large-scale problems, the proposed method may be a viable alternative for emulating functions with shape constraints when only a few evaluations are available.
+Compared to SCAM, the proposed method stands out for its direct uncertainty quantification, fitting capability without a minimum number of observations, and the ability to handle shape constraints through observations of the function’s derivatives. However, SCAM excels in the quality of function fitting, especially in high-curvature scenarios with irregular grids.
+In the context of function emulation, however, it is plausible to arbitrarily select the points that will be observed to perform the fit, highlighting the SCGP's fitting capability.
+
+As future steps, it is possible to explore fitting through conditional SCGPs (\zcref{sec:scgp_cond}), which still lacks implementation in the literature, and to develop or adapt metrics to assess the quality of function fitting, thereby minimizing the need for visual evaluation.

@@ -1,0 +1,66 @@
+\section{Proofs}
+\label{proof:pred}
+
+\subsection{Predictive Posterior Distribution of a GP}
+
+Considering a model given by
+    \begin{align*}
+        \bfY \mid (\bff, \bfX) &\sim \cN(\bff, \sigma^2 I),\\
+        \bff \mid \bfX &\sim \gp(0, k) \equiv \cN(0, k(\bfX, \bfX)), 
+    \end{align*}
+
+    where $\bfX = X_1, \cdots, X_N$, $\bfY =  Y_1, \cdots, Y_N$ e $\bff =  f(X_1), \cdots, f(X_N)$. And so $\tbX = (\Xst, \bfX) $ e $\tbf = (f(\Xst), \bff)$ as notation. We now can find $p(\bfY, \tbf|\tbX)$. 
+    
+    It is actually simple, once we notice that $Y_i = f_i + \epsilon$ and, by consequence, $\cov(Y_i, f_j) = \cov(f_i + \epsilon_i, f_j) = \cov(f_i,f_j) = k(X_i, X_j)$. Which makes us able to find its joint distribution.
+
+    $$(\bfY, \tbf)\mid\tbX \sim \cN \left( 
+    \begin{bmatrix}
+        0\\0
+    \end{bmatrix},
+    \begin{bmatrix}
+        \sigma^2I + k(\bfX, \bfX) & k(\bfX, \tbX)\\
+        k(\tbX, \bfX) & k(\tbX, \tbX)\\
+    \end{bmatrix}
+    \right).$$
+
+    We now marginalise $\bff$, so we can find the joint distribution of $(\bfY, \fst)$. Again, using Gaussian distributions closed operations, we get:
+
+    $$(\bfY, \fst, \bff)\mid\tbX \sim \cN \left( 
+    \begin{bmatrix}
+        0\\0\\0
+    \end{bmatrix},
+    \begin{bmatrix}
+        \sigma^2I + k(\bfX, \bfX) & k(\bfX, \Xst) & k(\bfX, \bfX)\\
+        k(\Xst, \bfX) & k(\Xst, \Xst) & k(\Xst, \bfX)\\
+        k(\bfX, \bfX) & k(\bfX, \Xst) & k(\bfX, \bfX)
+    \end{bmatrix}
+    \right).$$
+
+    And now:
+
+    $$(\bfY, \fst)\mid\tbX \sim \cN \left( 
+    \begin{bmatrix}
+        0\\0
+    \end{bmatrix},
+    \begin{bmatrix}
+        \sigma^2I + k(\bfX, \bfX) & k(\bfX, \Xst)\\
+        k(\Xst, \bfX) & k(\Xst, \Xst).\\
+    \end{bmatrix}
+    \right)$$
+
+    So as to find the distribution of $(\fst\mid\bfY, \tbX)$, we can do it by noticing that  $(\fst\mid\bfY,\tbX) \sim \cN (\bfmu_\star, \Sigma_\star)$ and therefore:
+
+    \begin{align*}
+        \bfmu_\star &= k(\Xst, \bfX)(k(\bfX, \bfX) + \sigma^2I)^{-1}\bfY\\
+        \Sigma_\star &= k(\Xst, \Xst) - k(\Xst, \bfX)(k(\bfX, \bfX) + \sigma^2I)^{-1}k(\bfX, \Xst)
+    \end{align*}
+
+    All conditioning and marginalizing operations are found on \cite{Petersen2008}.
+
+    Finishing, finding 
+    $\bE_{(\fst\mid\bfY,\tbX)}\left[p(\Yst| \fst, \tbX)\right]$ is simple by remembering that $\Yst = \fst + \epsilon$ and so we get:
+
+    $$(\Yst \mid \bfY, \tbX) \sim \cN(\bfmu_\star, \Sigma_\star + \sigma^2I)$$.
+
+% \subsection{Demonstração do exemplo \ref{ex:improper_prior}}
+% \label{proof:improper_prior}

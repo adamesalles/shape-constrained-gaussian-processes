@@ -46,29 +46,32 @@ true_MC_x, true_MC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_MC.csv")
 true_HC_x, true_HC_y = load_data(DATA_PATH / "true_Gaussian_logCA0_HC.csv")
 
 model = 'SCAM'
+NOBS = range(10, 21, 2)
+# NOBS = [10, 20]
 if __name__ == '__main__':
     for dataset_name, dataset_path in datasets.items():
         if 'HC' in dataset_name:
             x_true, y_true = true_HC_x, true_HC_y
         else:
             x_true, y_true = true_MC_x[1:], true_MC_y[1:]
-            
-        for nobs in range(10, 21, 2):
+
+        for nobs in NOBS:
             fig, ax = plt.subplots(1, 1, figsize=(5, 4), tight_layout=True)
+            # fig.patch.set_facecolor("#F6FBFD")
             name = f"{model}_{nobs}_nobs"
             io_path = PATH / "experiments" / str(dataset_name)
             io_path.mkdir(parents=True, exist_ok=True)
-            
+
             train_x, train_y = load_data(dataset_path)
             train_x, train_y = remove_points(train_x, train_y, nobs)
-            
+
             test_x, test_y, test_se = load_data(io_path / f'{name}_.csv',
                                                 se=True)
             mse_loss = np.mean((test_y - y_true)**2)
-            
-            ax.plot(x_true, y_true, color=COLORS[0])
+
+            ax.plot(test_x, test_y, color=COLORS[0])
             ax.fill_between(
-                test_x, test_y + (2*test_se), test_y - (2*test_se),
+                test_x, test_y - (1.96*test_se), test_y + (1.96*test_se),
                 color=COLORS[0], alpha=0.5
             )
             ax.plot(train_x, train_y, "k*")
@@ -77,12 +80,13 @@ if __name__ == '__main__':
             ax.set_xlim([0, 1])
             # ax.set_ylim([-7.5, 12.5])
             ax.set_xlabel(r"$\alpha$")
+            # ax.set_facecolor("#F6FBFD")
             ax.set_ylabel(r"$f_{\boldsymbol{z}}(\alpha)$")
             ax.text(0.5, 0.05, f"MSE: {mse_loss:.2f}",
                     transform=ax.transAxes,
                     fontsize=16,
                     bbox=dict(facecolor=COLORS[0], alpha=0.5))
-            
+
             fig.suptitle("Shape Constrained Additive Model (SCAM)",
                          fontsize=18,
                          color=COLORS[0],
