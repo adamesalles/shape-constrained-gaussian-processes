@@ -2,16 +2,16 @@
 
 To understand in which scenarios the inclusion of shape constraints is beneficial, a series of experiments was conducted.
 
-The final implementation was done in the programming language \texttt{Python} using the \texttt{GPyTorch} library \cite{Gardner2021}, and it is available at \url{https://github.com/adamesalles/shape-constrained-gaussian-processes}, which also contains the results of the experiments conducted.
+The final implementation was done in the programming language \texttt{Python} using the \texttt{GPyTorch} library \citep{Gardner2021}, and it is available at \url{https://github.com/adamesalles/shape-constrained-gaussian-processes}, which also contains the results of the experiments conducted.
 
-The choice of \texttt{GPyTorch} was due to its ability to perform operations efficiently on a GPU (using Nvidia CUDA), which is essential for large-scale experiments and numerical hyperparameter optimization. Initial prototypes were developed in \texttt{Julia} with the \texttt{GaussianProcesses.jl} library~\cite{Fairbrother2022} and in \texttt{R}~\cite{R} with the \texttt{GPfit} library~\cite{GPfit2015}.
+The choice of \texttt{GPyTorch} was due to its ability to perform operations efficiently on a GPU (using Nvidia CUDA), which is essential for large-scale experiments and numerical hyperparameter optimization. Initial prototypes were developed in \texttt{Julia} with the \texttt{GaussianProcesses.jl} library~\citep{Fairbrother2022} and in \texttt{R}~\cite{R} with the \texttt{GPfit} library~\citep{GPfit2015}.
 
 The experiments were conducted on a Ryzen 7 5800H (8 cores, 16 threads) with 24GB of RAM and an Nvidia RTX 3050 GPU with 4GB of video memory.
 
 \subsection{Normalized Power Prior}
 
 The initial application planned for the developed methods is the emulation of functions in noisy Monte Carlo Markov Chain (MCMC) settings.
-In this context, a relevant example in the literature is the emulation of models using the \textit{Normalized Power Prior} (NPP) \cite{Carvalho2021}.
+In this context, a relevant example in the literature is the emulation of models using the \textit{Normalized Power Prior} (NPP) \citep{Carvalho2021}.
 
 % \comLM{State that $f_{z}(\alpha)$ is strictly convex when $\pi$ is proper.}
 
@@ -37,7 +37,8 @@ There are two experiments, assessing the fit capabilities of the proposed method
 Our first experiment consists of evaluating the fitting ability of the proposed methods under variations in the curvature and position of observed values.
 
 For the regressions in these \( M=20 \) evaluations of \( f_{\bfz}(\alpha) \), we used the Radial Basis Function (RBF) as the kernel function \( k \) and \( m(x) = 0 \) as the mean function.
-Additionally, for hyperparameter optimization, we used the Adam optimization method \cite{Kingma2017} with a learning rate of \( 10^{-2} \), 1000 iterations for the GP, and 2000 iterations for the SCGP. The MSE is evaluated on a grid of 1000 uniformly spaced points.
+Additionally, for hyperparameter optimization, we used the Adam optimization method \citep{Kingma2017} with a learning rate of \( 10^{-2} \), 1000 iterations for the GP, and 2000 iterations for the SCGP.
+The MSE is evaluated on a grid of 1000 uniformly spaced points.
 
 In the case where curvature is medium and evaluations are done on a regular grid, \zcref{fig:uniformMC} shows the comparison between Gaussian Process with and without shape constraints under medium curvature.
 
@@ -129,7 +130,8 @@ Observing \zcref{fig:reducingMCpt1}, it is possible to see that the traditional 
 
 \subsection{Comparison with SCAM}
 
-Shape Constrained Additive Models (SCAM)~\cite{Pya2014} provide an alternative for incorporating shape constraints in function emulation processes. They extend the concept of GAMs (mentioned in \zcref{sec:gam}) to include shape constraints. The SCAM implementation used here was performed in \texttt{R} with the \texttt{scam} library \cite{scam2012}.
+Shape Constrained Additive Models (SCAM)~\cite{Pya2014} provide an alternative for incorporating shape constraints in function emulation processes. They extend the concept of GAMs (mentioned in \zcref{sec:gam}) to include shape constraints.
+The SCAM implementation used here was performed in \texttt{R} with the \texttt{scam} library \cite{scam2012}.
 
 There is no direct uncertainty quantification in SCAM, which is a disadvantage compared to SCGP. In this case, approximate confidence intervals are used through estimators for the standard deviation of each prediction. Note that these confidence intervals cannot be interpreted as Bayesian guarantees and vice versa.
 
